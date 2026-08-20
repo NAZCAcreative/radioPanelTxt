@@ -56,6 +56,7 @@ export function fetchRandomHotNews(): HotNewsItem {
 
 export interface LiveHotNewsResult extends HotNewsItem {
   isLive: boolean;
+  candidateCount: number;
   // Set only when a key WAS provided but the live fetch still failed, so the
   // caller can tell "no key entered" (expected, silent) apart from
   // "key entered but something went wrong" (worth surfacing to the user).
@@ -70,10 +71,11 @@ function sanitizeApiKey(key: string): string {
   return key.trim().replace(/[^\x20-\x7E]/g, '');
 }
 
-export async function fetchHotNews(apiKey: string, model: string): Promise<LiveHotNewsResult> {
+export async function fetchHotNews(apiKey: string, model: string, requestedCount = 10): Promise<LiveHotNewsResult> {
+  const candidateCount = Math.max(1, Math.min(20, Math.round(requestedCount)));
   const cleanKey = sanitizeApiKey(apiKey);
   if (!cleanKey) {
-    return { ...fetchRandomHotNews(), isLive: false };
+    return { ...fetchRandomHotNews(), isLive: false, candidateCount: Math.min(candidateCount, HOT_NEWS_TOPICS.length) };
   }
 
   try {
@@ -91,14 +93,15 @@ export async function fetchHotNews(apiKey: string, model: string): Promise<LiveH
           {
             role: 'system',
             content:
-              '당신은 찬반 토론에 적합한 한국 사회의 시사 이슈를 추천하는 큐레이터입니다. 반드시 다른 설명 없이 아래 JSON 객체 하나만 응답하세요: {"topic": "찬반이 갈리는 구체적인 토론 주제 한 문장", "category": "분야 (예: 경제/사회, 기술/노동 등)", "backgroundContext": "이 주제의 배경과 핵심 쟁점을 2~3문장으로 설명"}',
+              `당신은 찬반 토론에 적합한 한국 사회의 오늘자 시사 이슈를 추천하는 큐레이터입니다. 서로 중복되지 않는 후보 ${candidateCount}개를 만들고, 다른 설명 없이 반드시 다음 JSON 객체 하나만 응답하세요: {"items":[{"topic":"찬반이 갈리는 구체적인 토론 주제 한 문장","category":"분야","backgroundContext":"오늘 기준 배경과 핵심 쟁점 2~3문장"}]}`,
           },
           {
             role: 'user',
-            content: '지금 한국 사회에서 찬반 토론하기 좋은 화제의 이슈를 하나 추천해줘. 매번 다른 주제를 무작위로 골라줘.',
+            content: `지금 한국 사회에서 찬반 토론하기 좋은 오늘의 뉴스 주제 후보를 정확히 ${candidateCount}개 추천해줘.`,
           },
         ],
         temperature: 1,
+        max_tokens: Math.min(4000, 300 + candidateCount * 180),
       }),
     });
 
@@ -116,19 +119,34 @@ export async function fetchHotNews(apiKey: string, model: string): Promise<LiveH
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('응답에서 JSON을 찾지 못했습니다.');
     const parsed = JSON.parse(jsonMatch[0]);
-    if (typeof parsed.topic !== 'string' || !parsed.topic.trim()) {
-      throw new Error('주제를 가져오지 못했습니다.');
-    }
+    const rawItems: unknown[] = Array.isArray(parsed.items) ? parsed.items : [parsed];
+    const items: HotNewsItem[] = rawItems
+      .filter((item: unknown): item is Record<string, unknown> => Boolean(item && typeof item === 'object'))
+      .flatMap((item) => {
+        if (typeof item.topic !== 'string' || !item.topic.trim()) return [];
+        return [{
+          topic: item.topic.trim(),
+          category: typeof item.category === 'string' && item.category.trim() ? item.category.trim() : '종합',
+          backgroundContext: typeof item.backgroundContext === 'string' ? item.backgroundContext.trim() : '',
+        }];
+      })
+      .slice(0, candidateCount);
+    if (!items.length) throw new Error('뉴스 주제 후보를 가져오지 못했습니다.');
+    const selected = items[Math.floor(Math.random() * items.length)];
 
     return {
-      topic: parsed.topic,
-      category: typeof parsed.category === 'string' && parsed.category ? parsed.category : '종합',
-      backgroundContext: typeof parsed.backgroundContext === 'string' ? parsed.backgroundContext : '',
+      ...selected,
       isLive: true,
+      candidateCount: items.length,
     };
   } catch (error) {
     console.warn('OpenRouter 핫 뉴스 가져오기 실패, 예시 주제로 대체합니다:', error);
     const message = error instanceof Error ? error.message : String(error);
-    return { ...fetchRandomHotNews(), isLive: false, keyErrorMessage: message };
+    return {
+      ...fetchRandomHotNews(),
+      isLive: false,
+      candidateCount: Math.min(candidateCount, HOT_NEWS_TOPICS.length),
+      keyErrorMessage: message,
+    };
   }
 }

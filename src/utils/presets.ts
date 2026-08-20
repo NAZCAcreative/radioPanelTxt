@@ -182,7 +182,7 @@ export const AGENT_PRESET_TEMPLATES: Record<string, AgentPresetTemplate> = {
     personality: { confidence: 90, assertiveness: 80, openness: 60 },
     behavior: { aggressiveness: 55, independentJudgment: 85 },
     epistemic: { evidencePreference: 'data', evidenceStrictness: 65 },
-    customModel: 'x-ai/grok-4.20',
+    customModel: 'x-ai/grok-4.6',
   },
   journalist: {
     name: '김범수',
@@ -197,7 +197,7 @@ export const AGENT_PRESET_TEMPLATES: Record<string, AgentPresetTemplate> = {
     personality: { curiosity: 90, skepticism: 80, agreeableness: 55 },
     behavior: { questionFrequency: 85, quoteOthers: 70 },
     epistemic: { evidencePreference: 'data', uncertaintyExpression: 'cautious' },
-    customModel: 'deepseek/deepseek-v4-flash',
+    customModel: 'deepseek/deepseek-v4-pro-0813',
   },
   economist: {
     name: '김동건',
@@ -212,7 +212,7 @@ export const AGENT_PRESET_TEMPLATES: Record<string, AgentPresetTemplate> = {
     personality: { formality: 90, emotionality: 15, confidence: 75 },
     behavior: { evidenceProvision: 90, topicFocusVsExpansion: 25 },
     epistemic: { evidencePreference: 'papers', evidenceStrictness: 90 },
-    customModel: 'anthropic/claude-opus-4.8',
+    customModel: 'anthropic/claude-opus-5',
   },
   ethicist: {
     name: '도현',

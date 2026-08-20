@@ -31,6 +31,7 @@ const DEFAULT_SETTINGS: DebateSettings = {
   globalModel: 'openai/gpt-5.6',
   advancedModelPerAgent: false,
   chatPaceMode: 'normal',
+  agentModelDefaultsVersion: 1,
 
   topic: 'AI 자동화로 인해 발생하는 실업 문제에 AI 기업이 경제적 책임을 져야 하는가?',
   backgroundContext: '2026년 이후 AI 자동화 도입율이 급상승하며 일부 직군에서의 고용 불안이 대두되고 있음. 주요 신흥 AI 기업들의 이익율은 가파르게 상승 중.',
@@ -81,6 +82,13 @@ const mergedSettings: DebateSettings = savedSettings
   ? { ...DEFAULT_SETTINGS, ...savedSettings, apiProvider: 'openrouter' }
   : DEFAULT_SETTINGS;
 
+const shouldApplyAgentModelDefaults = (savedSettings?.agentModelDefaultsVersion ?? 0) < 1;
+const defaultModelByAgentName: Record<string, string> = {
+  '이종현': 'x-ai/grok-4.6',
+  '김범수': 'deepseek/deepseek-v4-pro-0813',
+  '김동건': 'anthropic/claude-opus-5',
+};
+
 const INITIAL_SETTINGS: DebateSettings = {
   ...mergedSettings,
   globalModel: normalizeOpenRouterModelId(mergedSettings.globalModel) || DEFAULT_SETTINGS.globalModel,
@@ -88,9 +96,12 @@ const INITIAL_SETTINGS: DebateSettings = {
     ...mergedSettings.moderator,
     customModel: normalizeOpenRouterModelId(mergedSettings.moderator.customModel),
   },
+  agentModelDefaultsVersion: 1,
   agents: mergedSettings.agents.map((agent) => ({
     ...agent,
-    customModel: normalizeOpenRouterModelId(agent.customModel),
+    customModel: shouldApplyAgentModelDefaults && defaultModelByAgentName[agent.name]
+      ? defaultModelByAgentName[agent.name]
+      : normalizeOpenRouterModelId(agent.customModel),
   })),
 };
 

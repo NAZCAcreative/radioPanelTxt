@@ -353,6 +353,7 @@ export interface DebateSettings {
   customEndpointUrl?: string;
   advancedModelPerAgent: boolean;
   chatPaceMode: ChatPaceMode; // '기본모드' (realistic delays) vs '배속모드' (fast)
+  agentModelDefaultsVersion: number;
 
   // Topic & Context
   topic: string;
