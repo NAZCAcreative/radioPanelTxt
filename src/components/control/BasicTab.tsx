@@ -28,6 +28,8 @@ import { fetchHotNews } from '../../utils/newsFetcher';
 import { saveAgentPreset } from '../../utils/agentPresetArchive';
 import { exportAgentAsJson, exportAgentPromptAsText } from '../../utils/agentExport';
 import { deleteSavedTopic, listSavedTopics, saveTopic } from '../../utils/topicArchive';
+import { NO_ANSWER_TOPICS } from '../../utils/noAnswerTopics';
+import { CHAT_CHARACTER_STYLES, FUN_DEBATE_MODES, getFunDebateMode, pickModelForCharacter } from '../../utils/funModes';
 
 export const BasicTab: React.FC = () => {
   const {
@@ -37,6 +39,7 @@ export const BasicTab: React.FC = () => {
     addAgent,
     removeAgent,
     generateRandomPersonasForTopic,
+    applyFunMode,
     startDebate,
     pauseDebate,
     resumeDebate,
@@ -59,6 +62,7 @@ export const BasicTab: React.FC = () => {
   const [savedTopics, setSavedTopics] = useState(() => listSavedTopics());
   const [selectedSavedTopicId, setSelectedSavedTopicId] = useState('');
   const [topicArchiveMessage, setTopicArchiveMessage] = useState('');
+  const [selectedNoAnswerTopicIdx, setSelectedNoAnswerTopicIdx] = useState('');
 
   const isLight = settings.theme !== 'dark';
 
@@ -94,6 +98,13 @@ export const BasicTab: React.FC = () => {
     setSavedTopics(listSavedTopics());
     setSelectedSavedTopicId('');
     setTopicArchiveMessage('저장된 토픽을 삭제했습니다.');
+  };
+
+  const handleApplyNoAnswerTopic = () => {
+    const idx = Number.parseInt(selectedNoAnswerTopicIdx, 10);
+    const picked = NO_ANSWER_TOPICS[idx];
+    if (!picked) return;
+    updateSettings({ topic: picked.topic, backgroundContext: picked.backgroundContext });
   };
 
   const handleSaveAgentPreset = (agentId: string) => {
@@ -275,6 +286,53 @@ export const BasicTab: React.FC = () => {
         )}
       </div>
 
+      {/* Fun tone & relationship mode */}
+      <div className={`p-4 rounded-xl border space-y-3 shadow-sm ${
+        isLight ? 'bg-white border-fuchsia-200' : 'bg-gray-900/80 border-fuchsia-900'
+      }`}>
+        <div>
+          <h3 className="font-bold text-base text-fuchsia-600">🎬 재미 모드 & 채팅 스킨</h3>
+          <p className={`text-[13px] mt-0.5 ${isLight ? 'text-slate-500' : 'text-gray-400'}`}>
+            네 패널과 사회자의 관계, 전체 말투, 채팅방 색상을 한 번에 바꿉니다. ('기본 패널 토론' 외의 모드를 고르면 패널 이름과 채팅 캐릭터도 무작위로 바뀝니다)
+          </p>
+        </div>
+        <select
+          value={settings.funDebateModeId}
+          onChange={(e) => applyFunMode(e.target.value)}
+          className={`w-full border rounded-lg px-3 py-2.5 text-sm font-bold ${
+            isLight ? 'bg-fuchsia-50 border-fuchsia-300 text-slate-900' : 'bg-gray-950 border-fuchsia-800 text-gray-100'
+          }`}
+        >
+          {FUN_DEBATE_MODES.map((mode) => (
+            <option key={mode.id} value={mode.id}>{mode.emoji} {mode.name} — {mode.description}</option>
+          ))}
+        </select>
+        <div className={`rounded-lg border px-3 py-2 text-[14px] ${
+          isLight ? 'bg-slate-50 border-slate-200 text-slate-600' : 'bg-gray-950 border-gray-800 text-gray-300'
+        }`}>
+          <span className="font-bold mr-1">현재 연출:</span>
+          {getFunDebateMode(settings.funDebateModeId).description}
+        </div>
+        <label className={`flex items-center justify-between gap-3 p-3 rounded-lg border cursor-pointer transition ${
+          settings.noModeratorMode
+            ? isLight ? 'bg-cyan-50 border-cyan-400' : 'bg-cyan-950 border-cyan-700'
+            : isLight ? 'bg-slate-50 border-slate-200' : 'bg-gray-950 border-gray-800'
+        }`}>
+          <div>
+            <span className="text-sm font-bold block">🗯️ 사회자 없는 자유 대화</span>
+            <span className={`text-[13px] block mt-0.5 ${isLight ? 'text-slate-500' : 'text-gray-400'}`}>
+              사회자 턴과 개입을 끄고 패널끼리 직접 대화를 이어갑니다.
+            </span>
+          </div>
+          <input
+            type="checkbox"
+            checked={settings.noModeratorMode}
+            onChange={(e) => updateSettings({ noModeratorMode: e.target.checked })}
+            className="w-5 h-5 accent-cyan-600 shrink-0"
+          />
+        </label>
+      </div>
+
       {/* 2. DEBATE TOPIC & CONTEXT */}
       <div
         className={`p-4 rounded-xl border space-y-4 shadow-sm transition-colors ${
@@ -401,6 +459,41 @@ export const BasicTab: React.FC = () => {
               ℹ️ 예시 주제 목록에서 가져왔습니다.
             </p>
           )}
+        </div>
+
+        {/* No-Answer Debate Topic Picker ("깻잎 논쟁" genre) */}
+        <div className={`p-2.5 rounded-lg border space-y-2 ${
+          isLight ? 'bg-fuchsia-50/60 border-fuchsia-200' : 'bg-gray-950 border-fuchsia-900'
+        }`}>
+          <span className="text-sm font-bold flex items-center gap-1">
+            🍃 답 없는 논쟁 주제 (깻잎 논쟁류)
+            <HelpTooltip
+              title="답 없는 논쟁이란?"
+              description="깻잎 논쟁, 민트초코, 부먹찍먹처럼 정답이 없어 끝없이 티키타카가 이어지는 밸런스 게임형 주제 20개입니다. 진지한 시사 이슈 대신 가볍고 재미있는 토론을 원할 때 골라 쓰세요."
+            />
+          </span>
+          <div className="flex items-center gap-2">
+            <select
+              value={selectedNoAnswerTopicIdx}
+              onChange={(e) => setSelectedNoAnswerTopicIdx(e.target.value)}
+              className={`min-w-0 flex-1 border rounded-lg px-2.5 py-1.5 text-sm ${
+                isLight ? 'bg-white border-slate-300 text-slate-800' : 'bg-gray-900 border-gray-700 text-gray-200'
+              }`}
+            >
+              <option value="">주제 20개 중 선택...</option>
+              {NO_ANSWER_TOPICS.map((item, idx) => (
+                <option key={item.topic} value={idx}>{item.category} — {item.topic}</option>
+              ))}
+            </select>
+            <button
+              type="button"
+              disabled={selectedNoAnswerTopicIdx === ''}
+              onClick={handleApplyNoAnswerTopic}
+              className="px-2.5 py-1.5 rounded-lg bg-fuchsia-600 hover:bg-fuchsia-500 text-white text-[13px] font-bold disabled:opacity-40 transition shrink-0 whitespace-nowrap"
+            >
+              적용
+            </button>
+          </div>
         </div>
 
         {/* Topic Input */}
@@ -543,7 +636,8 @@ export const BasicTab: React.FC = () => {
         </div>
       </div>
 
-      {/* 3. MODERATOR AGENT CARD WITH MODEL SELECTOR */}
+      {/* 3. MODERATOR AGENT CARD WITH MODEL SELECTOR - hidden in moderator-less free chat mode */}
+      {!settings.noModeratorMode && (
       <div
         className={`p-4 rounded-xl border space-y-3 shadow-sm transition-colors ${
           isLight ? 'bg-white border-slate-200' : 'bg-gray-900/80 border-gray-800'
@@ -618,6 +712,7 @@ export const BasicTab: React.FC = () => {
           />
         </div>
       </div>
+      )}
 
       {/* 4. AGENT CARDS LIST WITH PER-AGENT MODEL SELECTION */}
       <div className="space-y-3">
@@ -779,6 +874,33 @@ export const BasicTab: React.FC = () => {
                         onChange={(modelId) => updateAgent(agent.id, { customModel: modelId })}
                         label="이 참가자가 사용할 AI 모델 (두뇌) 선택"
                       />
+                    </div>
+
+                    <div>
+                      <label className={`block text-[14px] font-semibold mb-1 ${isLight ? 'text-slate-600' : 'text-gray-400'}`}>
+                        캐릭터 말투 프리셋
+                      </label>
+                      <select
+                        value={agent.chatCharacterStyle || 'balanced'}
+                        onChange={(e) => {
+                          const style = e.target.value as typeof agent.chatCharacterStyle;
+                          const aggressiveModel = pickModelForCharacter(style, settings.funDebateModeId);
+                          updateAgent(agent.id, {
+                            chatCharacterStyle: style,
+                            ...(aggressiveModel ? { customModel: aggressiveModel } : {}),
+                          });
+                        }}
+                        className={`w-full border rounded-lg px-3 py-2 text-sm font-bold ${
+                          isLight ? 'bg-amber-50 border-amber-300 text-slate-900' : 'bg-gray-950 border-amber-800 text-gray-100'
+                        }`}
+                      >
+                        {CHAT_CHARACTER_STYLES.map((style) => (
+                          <option key={style.id} value={style.id}>{style.emoji} {style.name} — {style.description}</option>
+                        ))}
+                      </select>
+                      <p className={`text-[13px] mt-1 ${isLight ? 'text-slate-400' : 'text-gray-500'}`}>
+                        과격한 열혈형·거친 속어형·프로 반대꾼을 고르거나 매운맛 디스전 모드를 쓰면 이 참가자의 모델이 자동으로 Grok으로 바뀝니다.
+                      </p>
                     </div>
 
                     {/* 2. Name & Job */}

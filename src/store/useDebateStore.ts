@@ -18,6 +18,7 @@ import {
 } from '../utils/presets';
 import { loadSavedSettings, syncSettingsPersistence } from '../utils/settingsStorage';
 import { normalizeOpenRouterModelId } from '../utils/modelData';
+import { randomizeAgentCharacters } from '../utils/funModes';
 
 // If the user previously opted into browser-local storage, this holds the
 // entire saved workspace (topic, agents, moderator, every policy slider,
@@ -28,10 +29,12 @@ const DEFAULT_SETTINGS: DebateSettings = {
   apiProvider: 'openrouter',
   apiKey: '',
   keyStorage: 'donotsave',
-  globalModel: 'openai/gpt-5.6',
+  globalModel: 'openai/gpt-5.5-pro',
   advancedModelPerAgent: false,
   chatPaceMode: 'normal',
   agentModelDefaultsVersion: 2,
+  funDebateModeId: 'standard',
+  noModeratorMode: false,
 
   topic: 'AI 자동화로 인해 발생하는 실업 문제에 AI 기업이 경제적 책임을 져야 하는가?',
   backgroundContext: '2026년 이후 AI 자동화 도입율이 급상승하며 일부 직군에서의 고용 불안이 대두되고 있음. 주요 신흥 AI 기업들의 이익율은 가파르게 상승 중.',
@@ -65,7 +68,7 @@ const DEFAULT_SETTINGS: DebateSettings = {
   reflectionIntervalTurns: 5,
 
   maxTurns: 30,
-  maxResponseTokens: 300,
+  maxResponseTokens: 1000,
   maxTotalTokens: 100000,
   maxCostLimitUsd: 2.0,
   debugMode: false,
@@ -84,13 +87,22 @@ const mergedSettings: DebateSettings = savedSettings
 
 const shouldApplyAgentModelDefaults = (savedSettings?.agentModelDefaultsVersion ?? 0) < 2;
 const defaultModelByAgentName: Record<string, string> = {
-  '이종현': 'x-ai/grok-4.6',
+  '이종현': 'x-ai/grok-4.20',
   '김범수': 'deepseek/deepseek-v4-pro-0813',
   '김동건': 'anthropic/claude-opus-5',
 };
 
 const INITIAL_SETTINGS: DebateSettings = {
   ...mergedSettings,
+  funDebateModeId: mergedSettings.funDebateModeId === 'panel_only_free_chat'
+    ? 'standard'
+    : mergedSettings.funDebateModeId,
+  noModeratorMode: savedSettings?.funDebateModeId === 'panel_only_free_chat' || mergedSettings.noModeratorMode,
+  // Migrate the old 300-token default, which frequently truncated structured
+  // responses before their JSON object could be closed.
+  maxResponseTokens: mergedSettings.maxResponseTokens === 300
+    ? DEFAULT_SETTINGS.maxResponseTokens
+    : mergedSettings.maxResponseTokens,
   globalModel: normalizeOpenRouterModelId(mergedSettings.globalModel) || DEFAULT_SETTINGS.globalModel,
   moderator: {
     ...mergedSettings.moderator,
@@ -147,6 +159,7 @@ interface DebateStore {
   addAgentFromPreset: (presetAgent: Agent) => void;
   removeAgent: (agentId: string) => void;
   generateRandomPersonasForTopic: () => void;
+  applyFunMode: (modeId: string) => void;
   applyDebatePreset: (presetId: string) => void;
   toggleDebugMode: () => void;
   toggleTheme: () => void;
@@ -277,6 +290,19 @@ export const useDebateStore = create<DebateStore>((set, get) => {
       set((state) => ({
         settings: { ...state.settings, agents: randomAgents },
       }));
+    },
+
+    // Switching to a fun mode instantly reshuffles every panelist's name and
+    // chat character style/emoji to match, so the cast feels new right away.
+    // Picking "standard" leaves the current cast alone.
+    applyFunMode: (modeId) => {
+      set((state) => {
+        const newAgents =
+          modeId === 'standard' ? state.settings.agents : randomizeAgentCharacters(state.settings.agents, modeId);
+        const newSettings = { ...state.settings, funDebateModeId: modeId, agents: newAgents };
+        if (engineInstance) engineInstance.setSettings(newSettings);
+        return { settings: newSettings };
+      });
     },
 
     applyDebatePreset: (presetId) => {
@@ -472,6 +498,10 @@ export const useDebateStore = create<DebateStore>((set, get) => {
         settings: {
           ...INITIAL_SETTINGS,
           ...settings,
+          funDebateModeId: settings.funDebateModeId === 'panel_only_free_chat'
+            ? 'standard'
+            : (settings.funDebateModeId || 'standard'),
+          noModeratorMode: settings.funDebateModeId === 'panel_only_free_chat' || Boolean(settings.noModeratorMode),
           globalModel: restoredGlobalModel,
           moderator: {
             ...settings.moderator,

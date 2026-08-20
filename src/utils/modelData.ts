@@ -17,8 +17,22 @@ const LEGACY_MODEL_IDS: Record<string, string> = {
   'anthropic/claude-3.7-sonnet': 'anthropic/claude-sonnet-5',
   'anthropic/claude-3.5-sonnet': 'anthropic/claude-sonnet-4.6',
   'anthropic/claude-3.5-haiku': 'anthropic/claude-haiku-4.5',
-  'x-ai/grok-2-1212': 'x-ai/grok-4.6',
+  // grok-4.6 measured 30-40s per turn in testing (see grok-4.20 below) - never
+  // auto-assign it, redirect legacy references to the fast variant instead.
+  'x-ai/grok-2-1212': 'x-ai/grok-4.20',
   'deepseek/deepseek-v4': 'deepseek/deepseek-v4-pro-0813',
+  // These ids never existed on OpenRouter (verified against GET /api/v1/models) -
+  // redirect any value already saved in a browser to the real replacement below.
+  'openai/gpt-5.6': 'openai/gpt-5.5-pro',
+  'openai/gpt-oss': 'openai/gpt-oss-120b',
+  'google/gemini-3.0-flash': 'google/gemini-3.5-flash',
+  'google/gemini-2.0-flash-001': 'google/gemini-2.5-flash',
+  'qwen/qwen-3.8-72b': 'qwen/qwen3.8-max',
+  'z-ai/glm-5-flagship': 'z-ai/glm-5.3',
+  'mistralai/voxtral-large': 'mistralai/mistral-large-2512',
+  'nvidia/nemotron-4-340b': 'nvidia/nemotron-3-ultra-550b-a55b',
+  'perplexity/sonar-reasoning': 'perplexity/sonar-reasoning-pro',
+  'cohere/command-r-plus': 'cohere/command-a',
 };
 
 export function normalizeOpenRouterModelId(modelId?: string): string | undefined {
@@ -91,12 +105,12 @@ export function getModelPerformanceRank(modelId: string): { rank: number; tier: 
 export const OPENROUTER_MODELS: LLMModelMeta[] = [
   // --- OPENAI ---
   {
-    id: 'openai/gpt-5.6',
-    name: 'OpenAI GPT-5.6 (Latest Flagship)',
+    id: 'openai/gpt-5.5-pro',
+    name: 'OpenAI GPT-5.5 Pro (Latest Flagship)',
     provider: 'OpenAI',
-    costInput: '$13.00 / 1M',
-    costOutput: '$39.00 / 1M',
-    trait: '최신 플래그십 업데이트, 향상된 종합 추론과 응답 속도 및 안정성',
+    costInput: '$30.00 / 1M',
+    costOutput: '$180.00 / 1M',
+    trait: '최상위 플래그십, 향상된 종합 추론과 응답 속도 및 안정성',
     recommendedRole: '최고 종합 연구원 & 주요 좌장',
     badgeColor: 'bg-emerald-200 text-emerald-900 border-emerald-400',
     performanceTier: '🏆 Tier 1 Ultra',
@@ -163,11 +177,11 @@ export const OPENROUTER_MODELS: LLMModelMeta[] = [
     rank: 95,
   },
   {
-    id: 'openai/gpt-oss',
-    name: 'OpenAI GPT-OSS',
+    id: 'openai/gpt-oss-120b',
+    name: 'OpenAI GPT-OSS 120B',
     provider: 'OpenAI',
-    costInput: '$0.20 / 1M',
-    costOutput: '$0.60 / 1M',
+    costInput: '$0.03 / 1M',
+    costOutput: '$0.17 / 1M',
     trait: 'OpenAI 오픈웨이트 가성비 모델, 빠른 대화 및 다목적 토론',
     recommendedRole: '일반 토론 패널',
     badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -239,11 +253,11 @@ export const OPENROUTER_MODELS: LLMModelMeta[] = [
 
   // --- GOOGLE ---
   {
-    id: 'google/gemini-3.0-flash',
-    name: 'Gemini 3.x Flash',
+    id: 'google/gemini-3.5-flash',
+    name: 'Gemini 3.5 Flash',
     provider: 'Google',
-    costInput: '$0.15 / 1M',
-    costOutput: '$0.60 / 1M',
+    costInput: '$1.50 / 1M',
+    costOutput: '$9.00 / 1M',
     trait: '차세대 멀티모달 & 초장문 컨텍스트, 압도적 가성비와 무제한 기억',
     recommendedRole: '사회자(Host) & 팩트체커',
     badgeColor: 'bg-blue-100 text-blue-800 border-blue-300',
@@ -251,12 +265,12 @@ export const OPENROUTER_MODELS: LLMModelMeta[] = [
     rank: 96,
   },
   {
-    id: 'google/gemini-2.0-flash-001',
-    name: 'Gemini 2.0 Flash',
+    id: 'google/gemini-2.5-flash',
+    name: 'Gemini 2.5 Flash',
     provider: 'Google',
-    costInput: '$0.10 / 1M',
-    costOutput: '$0.40 / 1M',
-    trait: '차세대 초고속 모델, 방대한 맥락 수용 및 빠른 요약 정리',
+    costInput: '$0.30 / 1M',
+    costOutput: '$2.50 / 1M',
+    trait: '초고속 모델, 방대한 맥락 수용 및 빠른 요약 정리',
     recommendedRole: '사회자(Host) & 팩트체커',
     badgeColor: 'bg-blue-100 text-blue-800 border-blue-300',
     performanceTier: '⚡ Tier 3 High-End',
@@ -266,11 +280,11 @@ export const OPENROUTER_MODELS: LLMModelMeta[] = [
   // --- XAI (GROK) ---
   {
     id: 'x-ai/grok-4.6',
-    name: 'xAI Grok 4.6 / Latest',
+    name: 'xAI Grok 4.6 / Latest (응답 느림 주의)',
     provider: 'xAI',
     costInput: '$3.00 / 1M',
     costOutput: '$15.00 / 1M',
-    trait: '최신 Grok 플래그십, 무제약 직설적 추론 및 통찰력 강한 논쟁어조',
+    trait: '최신 Grok 플래그십. 무제약 직설적 추론이 강하지만 응답이 30~40초로 매우 느려 실시간 토론엔 부적합할 수 있음',
     recommendedRole: '직설적 현실 비판 논객',
     badgeColor: 'bg-stone-300 text-stone-950 border-stone-400',
     performanceTier: '🏆 Tier 1 Ultra',
@@ -329,11 +343,11 @@ export const OPENROUTER_MODELS: LLMModelMeta[] = [
 
   // --- ALIBABA QWEN ---
   {
-    id: 'qwen/qwen-3.8-72b',
-    name: 'Alibaba Qwen 3.8 / 3.6',
+    id: 'qwen/qwen3.8-max',
+    name: 'Alibaba Qwen3.8 Max',
     provider: 'Alibaba',
-    costInput: '$0.30 / 1M',
-    costOutput: '$0.60 / 1M',
+    costInput: '$2.00 / 1M',
+    costOutput: '$6.00 / 1M',
     trait: '차세대 Qwen 3 시리즈, 멀티모달 & 정교한 코딩/수치 데이터 검증',
     recommendedRole: '데이터/통계 정밀 분석관',
     badgeColor: 'bg-violet-100 text-violet-800 border-violet-300',
@@ -355,11 +369,11 @@ export const OPENROUTER_MODELS: LLMModelMeta[] = [
 
   // --- Z.AI (ZHIPU AI) ---
   {
-    id: 'z-ai/glm-5-flagship',
-    name: 'Z.ai GLM 5.x Flagship',
+    id: 'z-ai/glm-5.3',
+    name: 'Z.ai GLM 5.3 Flagship',
     provider: 'Z.ai',
-    costInput: '$0.50 / 1M',
-    costOutput: '$1.50 / 1M',
+    costInput: '$1.40 / 1M',
+    costOutput: '$4.40 / 1M',
     trait: '에이전트 지능 및 코딩/장문 복합 맥락 추론 전문',
     recommendedRole: '복합 맥락 종합 판단위원',
     badgeColor: 'bg-yellow-100 text-yellow-900 border-yellow-300',
@@ -369,12 +383,12 @@ export const OPENROUTER_MODELS: LLMModelMeta[] = [
 
   // --- MISTRAL AI ---
   {
-    id: 'mistralai/voxtral-large',
-    name: 'Mistral / Voxtral Large',
+    id: 'mistralai/mistral-large-2512',
+    name: 'Mistral Large 3',
     provider: 'Mistral',
-    costInput: '$2.00 / 1M',
-    costOutput: '$6.00 / 1M',
-    trait: '범용 논리와 멀티모달 음성/텍스트 결합 원칙주의적 논조',
+    costInput: '$0.50 / 1M',
+    costOutput: '$1.50 / 1M',
+    trait: '범용 논리와 원칙주의적 논조를 갖춘 최신 대형 모델',
     recommendedRole: '규범 & 윤리 전문 패널',
     badgeColor: 'bg-rose-100 text-rose-800 border-rose-300',
     performanceTier: '🌟 Tier 2 Flagship',
@@ -383,11 +397,11 @@ export const OPENROUTER_MODELS: LLMModelMeta[] = [
 
   // --- NVIDIA ---
   {
-    id: 'nvidia/nemotron-4-340b',
-    name: 'NVIDIA Nemotron 4 / 70B',
+    id: 'nvidia/nemotron-3-ultra-550b-a55b',
+    name: 'NVIDIA Nemotron 3 Ultra',
     provider: 'NVIDIA',
-    costInput: '$0.50 / 1M',
-    costOutput: '$1.50 / 1M',
+    costInput: '$0.60 / 1M',
+    costOutput: '$3.60 / 1M',
     trait: '고성능 합성 데이터 및 정밀 추론 전문 엔터프라이즈 모델',
     recommendedRole: '엔지니어링 & 과학 기술 패널',
     badgeColor: 'bg-lime-100 text-lime-800 border-lime-300',
@@ -397,11 +411,11 @@ export const OPENROUTER_MODELS: LLMModelMeta[] = [
 
   // --- PERPLEXITY & COHERE ---
   {
-    id: 'perplexity/sonar-reasoning',
-    name: 'Perplexity Sonar Reasoning',
+    id: 'perplexity/sonar-reasoning-pro',
+    name: 'Perplexity Sonar Reasoning Pro',
     provider: 'Perplexity',
-    costInput: '$1.00 / 1M',
-    costOutput: '$5.00 / 1M',
+    costInput: '$2.00 / 1M',
+    costOutput: '$8.00 / 1M',
     trait: '검색 기반 실시간 최신 정보 및 근거 기반 추론 전문',
     recommendedRole: '팩트체크 & 데이터 검증위원',
     badgeColor: 'bg-teal-100 text-teal-800 border-teal-300',
@@ -409,8 +423,8 @@ export const OPENROUTER_MODELS: LLMModelMeta[] = [
     rank: 86,
   },
   {
-    id: 'cohere/command-r-plus',
-    name: 'Cohere Command R+',
+    id: 'cohere/command-a',
+    name: 'Cohere Command A',
     provider: 'Cohere',
     costInput: '$2.50 / 1M',
     costOutput: '$10.00 / 1M',

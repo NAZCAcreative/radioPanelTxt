@@ -3,6 +3,7 @@ import type { Message } from '../../types/debate';
 import { Bot, User, Info } from 'lucide-react';
 import { useDebateStore } from '../../store/useDebateStore';
 import { getSpeechActLabel } from '../../utils/labels';
+import { getCharacterStyle } from '../../utils/funModes';
 
 interface MessageItemProps {
   message: Message;
@@ -33,6 +34,10 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message, replyToMessag
   }
 
   const stance = metadata?.stance;
+  const speakerAgent = !isModerator && !isAudience
+    ? settings.agents.find((a) => a.id === message.speakerId)
+    : undefined;
+  const characterEmoji = speakerAgent ? getCharacterStyle(speakerAgent.chatCharacterStyle).emoji : null;
 
   return (
     <div
@@ -60,6 +65,8 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message, replyToMessag
             <Bot className="w-5 h-5" />
           ) : isAudience ? (
             <User className="w-5 h-5 text-white" />
+          ) : characterEmoji ? (
+            <span className="text-lg leading-none">{characterEmoji}</span>
           ) : (
             message.speakerName.slice(0, 2)
           )}
@@ -71,6 +78,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message, replyToMessag
         {/* Header line */}
         <div className="flex items-center gap-2">
           <span className={`font-bold text-sm ${isChatDark ? 'text-slate-100' : 'text-slate-900'}`}>
+            {characterEmoji && <span className="mr-1">{characterEmoji}</span>}
             {message.speakerName}
           </span>
           {message.speakerRole && (

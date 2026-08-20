@@ -31,6 +31,13 @@ export interface LLMResponseResult {
   latencyMs?: number;
 }
 
+class StructuredResponseParseError extends Error {
+  constructor() {
+    super('모델이 완성된 응답 형식을 반환하지 않았습니다. 자동 재시도 후에도 복구하지 못했습니다.');
+    this.name = 'StructuredResponseParseError';
+  }
+}
+
 // --- HUMAN-LIKE PACING HELPERS ---
 // Give speakers a believable "thinking" beat before they start typing, then
 // reveal their message the way a person actually types: in short bursts with
@@ -101,36 +108,54 @@ export async function callLLMProvider(
   options: LLMRequestOptions
 ): Promise<LLMResponseResult> {
   const startTime = Date.now();
-  const provider = options.settings.apiProvider;
   const effectiveApiKey = sanitizeApiKey(options.settings.apiKey);
 
   if (!effectiveApiKey) {
     throw new Error('API 키가 설정되지 않았습니다. 기본 설정 탭에서 API 키를 입력해주세요.');
   }
 
-  try {
-    let rawResponseText = '';
+  let accumulatedTokensUsed = 0;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const retrying = attempt === 1;
+    const requestOptions: LLMRequestOptions = retrying
+      ? {
+          ...options,
+          settings: {
+            ...options.settings,
+            maxResponseTokens: Math.max(options.settings.maxResponseTokens || 0, 1200),
+          },
+          userPrompt: `${options.userPrompt}\n\nRETRY: Return one complete JSON object only. Do not use markdown. Put the visible message field first and keep metadata concise.`,
+        }
+      : options;
 
-    if (provider === 'gemini') {
-      rawResponseText = await callGeminiAPI(options);
-    } else if (provider === 'anthropic') {
-      rawResponseText = await callAnthropicAPI(options);
-    } else if (provider === 'ollama') {
-      rawResponseText = await callOllamaAPI(options);
-    } else {
-      // OpenAI / OpenRouter / Custom OpenAI-compatible
-      rawResponseText = await callOpenAICompatibleAPI(options);
+    try {
+      let rawResponseText = '';
+      const provider = requestOptions.settings.apiProvider;
+
+      if (provider === 'gemini') {
+        rawResponseText = await callGeminiAPI(requestOptions);
+      } else if (provider === 'anthropic') {
+        rawResponseText = await callAnthropicAPI(requestOptions);
+      } else if (provider === 'ollama') {
+        rawResponseText = await callOllamaAPI(requestOptions);
+      } else {
+        rawResponseText = await callOpenAICompatibleAPI(requestOptions);
+      }
+
+      const latencyMs = Date.now() - startTime;
+      accumulatedTokensUsed += Math.round(rawResponseText.length / 4);
+      return parseLLMStructuredResponse(rawResponseText, accumulatedTokensUsed, latencyMs);
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') throw error;
+      if (error instanceof StructuredResponseParseError && !retrying) {
+        options.onChunk('');
+        continue;
+      }
+      throw error instanceof Error ? error : new Error(String(error));
     }
-
-    const latencyMs = Date.now() - startTime;
-    const tokensUsed = Math.round(rawResponseText.length / 4);
-
-    return parseLLMStructuredResponse(rawResponseText, tokensUsed, latencyMs);
-  } catch (error) {
-    if (error instanceof DOMException && error.name === 'AbortError') throw error;
-    // Surface the failure so the engine can pause and let the user retry.
-    throw error instanceof Error ? error : new Error(String(error));
   }
+
+  throw new StructuredResponseParseError();
 }
 
 // --- API IMPLEMENTATIONS ---
@@ -170,6 +195,7 @@ async function callOpenAICompatibleAPI(options: LLMRequestOptions): Promise<stri
       temperature: 0.7,
       max_tokens: settings.maxResponseTokens || undefined,
       stream: true,
+      ...(settings.apiProvider === 'openrouter' ? { response_format: { type: 'json_object' } } : {}),
     }),
     signal: options.signal,
   });
@@ -393,8 +419,8 @@ export function parseLLMStructuredResponse(
     // Models can hit the token limit after completing the visible `message`
     // but before closing later metadata fields. Recover that field instead of
     // leaking raw JSON syntax into the chat bubble.
-    const partialMessage = extractJsonStringField(rawText, 'message') ||
-      extractJsonStringField(rawText, 'public_message');
+    const partialMessage = extractJsonStringField(rawText, 'message', true) ||
+      extractJsonStringField(rawText, 'public_message', true);
     if (partialMessage) {
       const partialStance = extractJsonNumberField(rawText, 'stance');
       const partialConfidence = extractJsonNumberField(rawText, 'confidence');
@@ -411,23 +437,45 @@ export function parseLLMStructuredResponse(
       };
     }
 
-    // Plain-text responses remain usable, but JSON-looking failures are
-    // replaced with a readable error rather than displayed verbatim.
+    // Plain-text responses remain usable. JSON-looking failures are retried
+    // by callLLMProvider instead of being inserted into the public chat.
     const plainText = rawText.replace(/```(?:json)?/gi, '').replace(/```/g, '').trim();
-    return {
-      message: /^[\s{[]/.test(plainText)
-        ? '응답 형식이 완성되지 않아 발언 내용을 표시하지 못했습니다. 이 턴을 다시 시도해주세요.'
-        : plainText,
-      tokensUsed,
-      latencyMs,
-    };
+    if (/^[\s{[]/.test(plainText) || !plainText) throw new StructuredResponseParseError();
+    return { message: plainText, tokensUsed, latencyMs };
   }
 }
 
-function extractJsonStringField(rawText: string, field: string): string | undefined {
+function extractJsonStringField(rawText: string, field: string, allowTruncated = false): string | undefined {
   const escapedField = field.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const match = rawText.match(new RegExp(`"${escapedField}"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"`));
-  if (!match) return undefined;
+  if (!match) {
+    if (!allowTruncated) return undefined;
+    const opening = new RegExp(`"${escapedField}"\\s*:\\s*"`).exec(rawText);
+    if (!opening) return undefined;
+    const remainder = rawText.slice(opening.index + opening[0].length);
+    let escaped = false;
+    let partial = '';
+    for (const char of remainder) {
+      if (!escaped && char === '"') break;
+      partial += char;
+      if (char === '\\' && !escaped) escaped = true;
+      else escaped = false;
+    }
+    // Drop a dangling escape introduced by token truncation, then decode the
+    // common JSON escapes without requiring the enclosing object to be valid.
+    if (partial.endsWith('\\')) partial = partial.slice(0, -1);
+    try {
+      return JSON.parse(`"${partial}"`).trim() || undefined;
+    } catch {
+      return partial
+        .replace(/\\n/g, '\n')
+        .replace(/\\r/g, '\r')
+        .replace(/\\t/g, '\t')
+        .replace(/\\"/g, '"')
+        .replace(/\\\\/g, '\\')
+        .trim() || undefined;
+    }
+  }
   try {
     return JSON.parse(`"${match[1]}"`).trim() || undefined;
   } catch {

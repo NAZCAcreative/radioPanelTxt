@@ -13,6 +13,7 @@ import type {
   Message,
   Moderator,
 } from '../types/debate';
+import { getCharacterStyle, getFunDebateMode } from '../utils/funModes';
 
 // Varied "thinking" indicator phrases so the live typing card doesn't feel
 // robotic/repetitive - picked once per turn and held stable in session state.
@@ -132,11 +133,17 @@ export class DebateEngine {
 
       // 3. Process Audience Question Injection if pending & high priority
       const pendingAudienceQ = this.getPendingAudienceQuestion();
+      const noModerator = this.settings.noModeratorMode;
 
-      if (isModerator || (pendingAudienceQ && pendingAudienceQ.priority === 'IMMEDIATE')) {
+      if (!noModerator && (isModerator || (pendingAudienceQ && pendingAudienceQ.priority === 'IMMEDIATE'))) {
         await this.handleModeratorTurn(currentTurn, pendingAudienceQ);
       } else if (selectedSpeaker) {
-        await this.handleAgentTurn(selectedSpeaker, currentTurn, speakPriorityScores[selectedSpeaker.id] || 50);
+        await this.handleAgentTurn(
+          selectedSpeaker,
+          currentTurn,
+          speakPriorityScores[selectedSpeaker.id] || 50,
+          noModerator ? pendingAudienceQ : undefined,
+        );
       }
 
       return true;
@@ -183,6 +190,7 @@ export class DebateEngine {
     speakPriorityScores: Record<string, number>;
   } {
     const { agents, turnMode, preventSpeakerDominance, protectMinorityOpinion } = this.settings;
+    const noModerator = this.settings.noModeratorMode;
     const { messages } = this.state;
     const scores: Record<string, number> = {};
     const stanceValues = agents.map((agent) => this.state.currentStances[agent.id] ?? agent.currentStance);
@@ -190,7 +198,7 @@ export class DebateEngine {
       ? stanceValues.reduce((sum, stance) => sum + stance, 0) / stanceValues.length
       : 0;
 
-    if (this.moderatorSelectedSpeakerId) {
+    if (!noModerator && this.moderatorSelectedSpeakerId) {
       const selected = agents.find((agent) => agent.id === this.moderatorSelectedSpeakerId);
       this.moderatorSelectedSpeakerId = null;
       if (selected) return { selectedSpeaker: selected, isModerator: false, speakPriorityScores: { [selected.id]: 100 } };
@@ -198,6 +206,10 @@ export class DebateEngine {
 
     // In Opening phase, ensure each agent speaks once in order
     if (this.state.phase === 'Opening') {
+      if (noModerator) {
+        const speaker = agents[this.state.currentTurn % agents.length];
+        return { selectedSpeaker: speaker, isModerator: false, speakPriorityScores: { [speaker.id]: 100 } };
+      }
       const turnIdx = this.state.currentTurn % (agents.length + 1);
       if (turnIdx === 0) {
         return { selectedSpeaker: null, isModerator: true, speakPriorityScores: {} };
@@ -212,7 +224,7 @@ export class DebateEngine {
       return { selectedSpeaker: agents[idx], isModerator: false, speakPriorityScores: {} };
     }
 
-    if (turnMode === 'moderator_controlled') {
+    if (turnMode === 'moderator_controlled' && !noModerator) {
       return { selectedSpeaker: null, isModerator: true, speakPriorityScores: {} };
     }
 
@@ -261,7 +273,7 @@ export class DebateEngine {
     const shouldModeratorIntervene =
       turnsSinceLastMod >= 4 || Math.random() * 100 > modInterventionThreshold;
 
-    if (shouldModeratorIntervene && turnMode !== 'free_debate') {
+    if (!noModerator && shouldModeratorIntervene && turnMode !== 'free_debate') {
       return { selectedSpeaker: null, isModerator: true, speakPriorityScores: scores };
     }
 
@@ -360,7 +372,7 @@ export class DebateEngine {
   }
 
   // --- AGENT TURN HANDLER ---
-  private async handleAgentTurn(agent: Agent, turn: number, priorityScore: number) {
+  private async handleAgentTurn(agent: Agent, turn: number, priorityScore: number, audienceQuestion?: AudienceQuestion) {
     this.updateState((s) => ({
       ...s,
       activeThinkingAgentId: agent.id,
@@ -369,7 +381,7 @@ export class DebateEngine {
     }));
 
     const systemPrompt = this.buildAgentSystemPrompt(agent);
-    const userPrompt = this.buildAgentUserPrompt(agent, turn);
+    const userPrompt = this.buildAgentUserPrompt(agent, turn, audienceQuestion);
     const signal = this.activeRequest?.signal;
     if (!signal) return;
 
@@ -386,6 +398,8 @@ export class DebateEngine {
     });
 
     if (signal.aborted) return;
+
+    if (audienceQuestion) this.markAudienceQuestionAddressed(audienceQuestion.id);
 
     // Update stance if provided
     const priorStance = this.state.currentStances[agent.id] ?? agent.currentStance;
@@ -511,6 +525,7 @@ export class DebateEngine {
 
   // --- PROMPT BUILDERS ---
   private buildModeratorSystemPrompt(mod: Moderator): string {
+    const funMode = getFunDebateMode(this.settings.funDebateModeId);
     const enabledBehaviors = Object.entries(mod.behaviors)
       .filter(([, enabled]) => enabled)
       .map(([name]) => name)
@@ -522,6 +537,7 @@ NEUTRALITY: ${mod.neutrality}% Neutral.
 INTERVENTION FREQUENCY: ${this.settings.moderator.interventionFrequency}%
 ENABLED ACTIONS: ${enabledBehaviors || 'basic facilitation only'}
 CONSENSUS POLICY: ${this.settings.consensusMode}
+SHOW MODE: ${funMode.name}. ${funMode.prompt}
 
 YOUR RESPONSIBILITIES:
 1. Orchestrate and direct the debate between participants.
@@ -560,6 +576,8 @@ Valid agents: ${this.settings.agents.map((agent) => `${agent.id}=${agent.name}`)
 
   private buildAgentSystemPrompt(agent: Agent): string {
     const { coreValues } = agent;
+    const funMode = getFunDebateMode(this.settings.funDebateModeId);
+    const characterStyle = getCharacterStyle(agent.chatCharacterStyle);
 
     return `
 YOU ARE: ${agent.name}
@@ -570,6 +588,9 @@ ROLE IN DEBATE: ${agent.roleInDebate}
 PERSONA:
 ${agent.personaMode === 'SIMPLE' ? agent.simplePersona : `Core Values: Progressive(${coreValues.progressiveVsConservative}), Fairness(${coreValues.efficiencyVsFairness}), TechOptimism(${coreValues.techOptimismVsSkepticism}).`}
 SPEAKING STYLE: ${agent.speakingStyle}
+CHARACTER CHAT STYLE: ${characterStyle.name}. ${characterStyle.prompt}
+SHOW MODE & RELATIONSHIP: ${funMode.name}. ${funMode.prompt}
+MODERATION: ${this.settings.noModeratorMode ? 'No moderator exists. Address other panelists directly and keep the conversation moving without host cues.' : 'A moderator is present.'}
 
 STRICT BEHAVIORAL RULES:
 1. Stay true to your persona and core values.
@@ -598,7 +619,7 @@ STRICT BEHAVIORAL RULES:
     `.trim();
   }
 
-  private buildAgentUserPrompt(agent: Agent, turn: number): string {
+  private buildAgentUserPrompt(agent: Agent, turn: number, audienceQuestion?: AudienceQuestion): string {
     const recentTurnsCount = this.settings.recentWorkingMemoryTurns;
     const recent = this.state.messages
       .slice(-recentTurnsCount)
@@ -628,6 +649,9 @@ STRICT BEHAVIORAL RULES:
     const reflectionInstruction = this.settings.reflectionIntervalTurns > 0 && turn % this.settings.reflectionIntervalTurns === 0
       ? 'REFLECTION TURN: Identify the strongest opposing argument and one unresolved question before giving your position.'
       : '';
+    const audienceInstruction = audienceQuestion
+      ? `AUDIENCE MESSAGE: "${audienceQuestion.userText}". Address it directly as a panelist without handing it to a moderator.`
+      : '';
 
     return `
 TOPIC: "${this.settings.topic}"${backgroundContextStr}
@@ -646,6 +670,7 @@ ${facts || '(disabled or empty)'}
 DEBATE POLICY: evidence=${this.settings.evidenceMode}, consensus=${this.settings.consensusMode}, challenge=${this.settings.challengeMode}/100, diversity=${this.settings.diversityPressure}/100.
 Do not invent sources. Clearly label uncertain factual claims.${this.settings.antiEchoMode ? ' Add new information instead of empty agreement.' : ''}
 ${reflectionInstruction}
+${audienceInstruction}
 
 SPEAKER: ${agent.name}
 Please respond as ${agent.name} adhering to JSON format.
