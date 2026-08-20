@@ -1,4 +1,4 @@
-// DEBATE LAB - Code-Driven Debate Runtime Engine
+// PANELOGUE - Code-Driven Debate Runtime Engine
 
 import { callLLMProvider } from '../services/llmService';
 import type {

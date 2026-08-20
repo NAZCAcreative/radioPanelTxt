@@ -1,4 +1,4 @@
-# 패널로그 (Panelogue)
+# panelogue 패널로그
 
 React, TypeScript, Zustand 기반의 AI 패널 토론 시뮬레이션 플랫폼입니다. 여러 AI 패널과 사회자가 주제별 토론을 진행하고 발언 근거, 입장 변화, 합의 과정을 기록합니다.
 

@@ -1,4 +1,4 @@
-// DEBATE LAB - LLM Provider Service with Streaming & High-Fidelity Simulation Fallback
+// PANELOGUE - LLM Provider Service with Streaming & High-Fidelity Simulation Fallback
 
 import type { ChatPaceMode, DebateSettings } from '../types/debate';
 

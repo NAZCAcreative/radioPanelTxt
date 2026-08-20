@@ -1,4 +1,4 @@
-// DEBATE LAB - Local Agent Persona Preset Archive (browser localStorage)
+// PANELOGUE - Local Agent Persona Preset Archive (browser localStorage)
 // Distinct from sessionArchive.ts: this saves a single tuned Agent config,
 // independent of any debate session, so a good persona can be found, kept,
 // and reused (in this app or exported elsewhere) on its own.

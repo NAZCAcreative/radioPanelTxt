@@ -1,4 +1,4 @@
-// DEBATE LAB - Local Session Save / Load Archive (browser localStorage)
+// PANELOGUE - Local Session Save / Load Archive (browser localStorage)
 
 import type { DebateSessionState, DebateSettings } from '../types/debate';
 

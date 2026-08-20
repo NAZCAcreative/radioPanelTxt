@@ -63,7 +63,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div>
           <div className="flex items-center gap-2">
             <h1 className={`font-bold text-xl tracking-wider ${isLight ? 'text-slate-900' : 'text-white'}`}>
-              패널로그
+              panelogue 패널로그
             </h1>
             <span
               className={`hidden sm:inline-block text-[13px] uppercase font-bold px-2 py-0.5 rounded-full border whitespace-nowrap ${

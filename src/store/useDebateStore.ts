@@ -1,4 +1,4 @@
-// DEBATE LAB - Zustand Global Store
+// PANELOGUE - Zustand Global Store
 
 import { create } from 'zustand';
 import { DebateEngine } from '../engine/DebateEngine';

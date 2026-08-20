@@ -1,4 +1,4 @@
-// DEBATE LAB - Core Type Definitions
+// PANELOGUE - Core Type Definitions
 
 export type ApiProvider =
   | 'openai'

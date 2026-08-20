@@ -1,4 +1,4 @@
-// DEBATE LAB - Agent Persona Export Helpers
+// PANELOGUE - Agent Persona Export Helpers
 // Produces files meant to leave this app: a paste-ready plain-text system
 // prompt for use in other chat tools, and a JSON backup that can be
 // re-imported here (or on another browser/device) later.

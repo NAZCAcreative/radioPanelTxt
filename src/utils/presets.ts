@@ -1,4 +1,4 @@
-// DEBATE LAB - Presets & Persona Generator
+// PANELOGUE - Presets & Persona Generator
 
 import type { Agent, CoreValues, DebateBehavior, EpistemicStyle, Moderator, PersonalityParameters } from '../types/debate';
 
