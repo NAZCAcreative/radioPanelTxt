@@ -281,6 +281,51 @@ export const BasicTab: React.FC = () => {
           isLight ? 'bg-white border-slate-200' : 'bg-gray-900/80 border-gray-800'
         }`}
       >
+        <div className="space-y-2">
+          {savedTopics.length > 0 && (
+            <div className={`p-2.5 rounded-lg border space-y-2 ${
+              isLight ? 'bg-indigo-50/60 border-indigo-200' : 'bg-gray-950 border-gray-700'
+            }`}>
+              <span className="text-sm font-bold">저장된 토픽 불러오기</span>
+              <div className="flex items-center gap-2">
+                <select
+                  value={selectedSavedTopicId}
+                  onChange={(e) => {
+                    setSelectedSavedTopicId(e.target.value);
+                    setTopicArchiveMessage('');
+                  }}
+                  className={`min-w-0 flex-1 border rounded-lg px-2.5 py-1.5 text-sm ${
+                    isLight ? 'bg-white border-slate-300 text-slate-800' : 'bg-gray-900 border-gray-700 text-gray-200'
+                  }`}
+                >
+                  <option value="">저장된 토픽 선택...</option>
+                  {savedTopics.map((saved) => (
+                    <option key={saved.id} value={saved.id}>{saved.label}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  disabled={!selectedSavedTopicId}
+                  onClick={handleLoadTopic}
+                  className="px-2.5 py-1.5 rounded-lg bg-emerald-600 text-white text-[13px] font-bold disabled:opacity-40"
+                >
+                  불러오기
+                </button>
+                <button
+                  type="button"
+                  disabled={!selectedSavedTopicId}
+                  onClick={handleDeleteTopic}
+                  title="선택한 토픽 삭제"
+                  className="p-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-600 disabled:opacity-40"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
+          {topicArchiveMessage && <p className="text-[13px] text-indigo-600">{topicArchiveMessage}</p>}
+        </div>
+
         <div className={`flex flex-wrap items-center justify-between gap-y-2 gap-x-3 border-b pb-2.5 ${isLight ? 'border-slate-100' : 'border-gray-800'}`}>
           <span className="font-bold text-base text-indigo-600 dark:text-indigo-400 flex items-center gap-2 shrink-0 whitespace-nowrap">
             <span>Debate Topic & Background</span>
@@ -372,56 +417,6 @@ export const BasicTab: React.FC = () => {
               isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-gray-950 border-gray-800 text-gray-200'
             }`}
           />
-          <div className={`mt-2 p-2.5 rounded-lg border space-y-2 ${
-            isLight ? 'bg-white border-slate-200' : 'bg-gray-900 border-gray-800'
-          }`}>
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-bold">저장된 토픽</span>
-              <button
-                type="button"
-                onClick={handleSaveTopic}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[13px] font-bold transition"
-              >
-                <Save className="w-3.5 h-3.5" />
-                현재 토픽 저장
-              </button>
-            </div>
-            <div className="flex items-center gap-2">
-              <select
-                value={selectedSavedTopicId}
-                onChange={(e) => {
-                  setSelectedSavedTopicId(e.target.value);
-                  setTopicArchiveMessage('');
-                }}
-                className={`min-w-0 flex-1 border rounded-lg px-2.5 py-1.5 text-sm ${
-                  isLight ? 'bg-slate-50 border-slate-300 text-slate-800' : 'bg-gray-950 border-gray-700 text-gray-200'
-                }`}
-              >
-                <option value="">저장된 토픽 선택...</option>
-                {savedTopics.map((saved) => (
-                  <option key={saved.id} value={saved.id}>{saved.label}</option>
-                ))}
-              </select>
-              <button
-                type="button"
-                disabled={!selectedSavedTopicId}
-                onClick={handleLoadTopic}
-                className="px-2.5 py-1.5 rounded-lg bg-emerald-600 text-white text-[13px] font-bold disabled:opacity-40"
-              >
-                불러오기
-              </button>
-              <button
-                type="button"
-                disabled={!selectedSavedTopicId}
-                onClick={handleDeleteTopic}
-                title="선택한 토픽 삭제"
-                className="p-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-600 disabled:opacity-40"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            </div>
-            {topicArchiveMessage && <p className="text-[13px] text-indigo-600">{topicArchiveMessage}</p>}
-          </div>
           <div className="mt-2 space-y-2">
             <select
               value={settings.contextVisibility}
@@ -467,6 +462,16 @@ export const BasicTab: React.FC = () => {
               isLight ? 'bg-slate-50 border-slate-300 text-slate-800' : 'bg-gray-950 border-gray-800 text-gray-300'
             }`}
           />
+          <div className="flex justify-end mt-2">
+            <button
+              type="button"
+              onClick={handleSaveTopic}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold transition"
+            >
+              <Save className="w-3.5 h-3.5" />
+              현재 토픽 저장
+            </button>
+          </div>
         </div>
 
         {/* Discussion Goal & Participant Count */}
