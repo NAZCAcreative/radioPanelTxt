@@ -127,7 +127,7 @@ export const LiveChatRoom: React.FC<LiveChatRoomProps> = ({ onOpenSummary }) => 
                 실시간 토론이 준비되었습니다
               </h3>
               <p className={`text-sm max-w-sm mt-1 leading-relaxed ${isChatDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                상단 또는 왼쪽 설정 패널의 <strong>'Start Debate'</strong> 버튼을 눌러 멀티 에이전트 그룹 토론을 시작하세요.
+                상단 또는 왼쪽 설정 패널의 <strong>'토론 시작'</strong> 버튼을 눌러 패널로그 토론을 시작하세요.
               </p>
             </div>
           </div>
@@ -178,7 +178,7 @@ export const LiveChatRoom: React.FC<LiveChatRoomProps> = ({ onOpenSummary }) => 
         {session.status === 'completed' && (
           <div className="my-6 p-5 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 border border-indigo-200 dark:border-indigo-500/40 rounded-2xl text-center space-y-2 shadow-sm">
             <h3 className={`font-bold text-lg tracking-wide ${isChatDark ? 'text-white' : 'text-indigo-900'}`}>
-              DEBATE COMPLETE
+              패널로그 토론 완료
             </h3>
             <p className={`text-sm ${isChatDark ? 'text-slate-300' : 'text-slate-600'}`}>
               토론이 성공적으로 완료되었습니다.

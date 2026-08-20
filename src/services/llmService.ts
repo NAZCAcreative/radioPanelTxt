@@ -1,4 +1,4 @@
-// DEBATE LAB - LLM Provider Service with Streaming & High-Fidelity Simulation Fallback
+// PANELOGUE - LLM Provider Service with Streaming & High-Fidelity Simulation Fallback
 
 import type { ChatPaceMode, DebateSettings } from '../types/debate';
 
@@ -153,7 +153,7 @@ async function callOpenAICompatibleAPI(options: LLMRequestOptions): Promise<stri
 
   if (settings.apiProvider === 'openrouter') {
     headers['HTTP-Referer'] = typeof window !== 'undefined' ? window.location.origin : 'http://localhost';
-    headers['X-Title'] = 'Debate Lab Multi-Agent Simulator';
+    headers['X-Title'] = 'Panelogue';
   }
 
   const modelName = agentOverrideModel || settings.globalModel || 'openai/gpt-4o-mini';

@@ -27,6 +27,7 @@ import { ModelSelectBox } from '../common/ModelSelectBox';
 import { fetchHotNews } from '../../utils/newsFetcher';
 import { saveAgentPreset } from '../../utils/agentPresetArchive';
 import { exportAgentAsJson, exportAgentPromptAsText } from '../../utils/agentExport';
+import { deleteSavedTopic, listSavedTopics, saveTopic } from '../../utils/topicArchive';
 
 export const BasicTab: React.FC = () => {
   const {
@@ -37,6 +38,8 @@ export const BasicTab: React.FC = () => {
     removeAgent,
     generateRandomPersonasForTopic,
     startDebate,
+    pauseDebate,
+    resumeDebate,
     session,
   } = useDebateStore();
 
@@ -49,10 +52,49 @@ export const BasicTab: React.FC = () => {
   const [newsStatus, setNewsStatus] = useState<{
     isLive: boolean;
     keyErrorMessage?: string;
+    candidateCount?: number;
   } | null>(null);
+  const [hotNewsCandidateCount, setHotNewsCandidateCount] = useState(10);
   const [justSavedSettings, setJustSavedSettings] = useState(false);
+  const [savedTopics, setSavedTopics] = useState(() => listSavedTopics());
+  const [selectedSavedTopicId, setSelectedSavedTopicId] = useState('');
+  const [topicArchiveMessage, setTopicArchiveMessage] = useState('');
 
   const isLight = settings.theme !== 'dark';
+
+  const handleSaveTopic = () => {
+    try {
+      const customLabel = window.prompt('저장할 토픽 이름을 입력하세요.', settings.topic.slice(0, 50));
+      if (customLabel === null) return;
+      const saved = saveTopic(settings.topic, settings.backgroundContext, settings.discussionGoal, customLabel);
+      setSavedTopics(listSavedTopics());
+      setSelectedSavedTopicId(saved.id);
+      setTopicArchiveMessage('토픽을 저장했습니다.');
+    } catch (error) {
+      setTopicArchiveMessage(error instanceof Error ? error.message : '토픽을 저장하지 못했습니다.');
+    }
+  };
+
+  const handleLoadTopic = () => {
+    const saved = savedTopics.find((topic) => topic.id === selectedSavedTopicId);
+    if (!saved) return;
+    updateSettings({
+      topic: saved.topic,
+      backgroundContext: saved.backgroundContext,
+      discussionGoal: saved.discussionGoal,
+    });
+    setTopicArchiveMessage(`“${saved.label}” 토픽을 불러왔습니다.`);
+  };
+
+  const handleDeleteTopic = () => {
+    if (!selectedSavedTopicId) return;
+    const saved = savedTopics.find((topic) => topic.id === selectedSavedTopicId);
+    if (!saved || !window.confirm(`“${saved.label}” 토픽을 삭제할까요?`)) return;
+    deleteSavedTopic(saved.id);
+    setSavedTopics(listSavedTopics());
+    setSelectedSavedTopicId('');
+    setTopicArchiveMessage('저장된 토픽을 삭제했습니다.');
+  };
 
   const handleSaveAgentPreset = (agentId: string) => {
     const agent = settings.agents.find((a) => a.id === agentId);
@@ -94,7 +136,7 @@ export const BasicTab: React.FC = () => {
     setIsFetchingNews(true);
     setNewsStatus(null);
     try {
-      const news = await fetchHotNews(settings.apiKey, settings.globalModel);
+      const news = await fetchHotNews(settings.apiKey, settings.globalModel, hotNewsCandidateCount);
       updateSettings({
         topic: news.topic,
         backgroundContext: news.backgroundContext,
@@ -102,6 +144,7 @@ export const BasicTab: React.FC = () => {
       setNewsStatus({
         isLive: news.isLive,
         keyErrorMessage: news.keyErrorMessage,
+        candidateCount: news.candidateCount,
       });
     } finally {
       setIsFetchingNews(false);
@@ -238,12 +281,76 @@ export const BasicTab: React.FC = () => {
           isLight ? 'bg-white border-slate-200' : 'bg-gray-900/80 border-gray-800'
         }`}
       >
+        <div className="space-y-2">
+          {savedTopics.length > 0 && (
+            <div className={`p-2.5 rounded-lg border space-y-2 ${
+              isLight ? 'bg-indigo-50/60 border-indigo-200' : 'bg-gray-950 border-gray-700'
+            }`}>
+              <span className="text-sm font-bold">저장된 토픽 불러오기</span>
+              <div className="flex items-center gap-2">
+                <select
+                  value={selectedSavedTopicId}
+                  onChange={(e) => {
+                    setSelectedSavedTopicId(e.target.value);
+                    setTopicArchiveMessage('');
+                  }}
+                  className={`min-w-0 flex-1 border rounded-lg px-2.5 py-1.5 text-sm ${
+                    isLight ? 'bg-white border-slate-300 text-slate-800' : 'bg-gray-900 border-gray-700 text-gray-200'
+                  }`}
+                >
+                  <option value="">저장된 토픽 선택...</option>
+                  {savedTopics.map((saved) => (
+                    <option key={saved.id} value={saved.id}>{saved.label}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  disabled={!selectedSavedTopicId}
+                  onClick={handleLoadTopic}
+                  className="px-2.5 py-1.5 rounded-lg bg-emerald-600 text-white text-[13px] font-bold disabled:opacity-40"
+                >
+                  불러오기
+                </button>
+                <button
+                  type="button"
+                  disabled={!selectedSavedTopicId}
+                  onClick={handleDeleteTopic}
+                  title="선택한 토픽 삭제"
+                  className="p-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-600 disabled:opacity-40"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
+          {topicArchiveMessage && <p className="text-[13px] text-indigo-600">{topicArchiveMessage}</p>}
+        </div>
+
         <div className={`flex flex-wrap items-center justify-between gap-y-2 gap-x-3 border-b pb-2.5 ${isLight ? 'border-slate-100' : 'border-gray-800'}`}>
           <span className="font-bold text-base text-indigo-600 dark:text-indigo-400 flex items-center gap-2 shrink-0 whitespace-nowrap">
             <span>Debate Topic & Background</span>
           </span>
 
           <div className="flex items-center gap-2 flex-wrap">
+            <label className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[13px] font-semibold ${
+              isLight ? 'bg-slate-50 border-slate-200 text-slate-600' : 'bg-gray-950 border-gray-800 text-gray-300'
+            }`}>
+              <span>뉴스 후보</span>
+              <input
+                type="number"
+                min={1}
+                max={20}
+                value={hotNewsCandidateCount}
+                onChange={(e) => {
+                  const value = Number.parseInt(e.target.value, 10);
+                  if (Number.isFinite(value)) setHotNewsCandidateCount(Math.max(1, Math.min(20, value)));
+                }}
+                className={`w-12 rounded border px-1.5 py-0.5 text-center font-mono font-bold ${
+                  isLight ? 'bg-white border-slate-300' : 'bg-gray-900 border-gray-700'
+                }`}
+              />
+              <span>개</span>
+            </label>
             {/* Hot News Button */}
             <button
               onClick={handleFetchHotNews}
@@ -281,7 +388,7 @@ export const BasicTab: React.FC = () => {
           {/* Result of the most recent fetch attempt */}
           {newsStatus && newsStatus.isLive && (
             <p className="text-[13px] leading-relaxed text-emerald-600 dark:text-emerald-400">
-              ✅ OpenRouter가 추천한 이슈를 가져왔습니다
+               ✅ 오늘의 뉴스 후보 {newsStatus.candidateCount ?? hotNewsCandidateCount}개 중 하나를 무작위로 가져왔습니다
             </p>
           )}
           {newsStatus && !newsStatus.isLive && newsStatus.keyErrorMessage && (
@@ -355,6 +462,16 @@ export const BasicTab: React.FC = () => {
               isLight ? 'bg-slate-50 border-slate-300 text-slate-800' : 'bg-gray-950 border-gray-800 text-gray-300'
             }`}
           />
+          <div className="flex justify-end mt-2">
+            <button
+              type="button"
+              onClick={handleSaveTopic}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold transition"
+            >
+              <Save className="w-3.5 h-3.5" />
+              현재 토픽 저장
+            </button>
+          </div>
         </div>
 
         {/* Discussion Goal & Participant Count */}
@@ -754,11 +871,22 @@ export const BasicTab: React.FC = () => {
 
       {/* Start Button */}
       <button
-        onClick={handleStartClick}
-        disabled={session.status === 'running'}
-        className="w-full py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-bold text-base shadow-md shadow-indigo-500/30 hover:opacity-95 transition disabled:opacity-50 active:scale-95"
+        onClick={session.status === 'running' ? pauseDebate : session.status === 'paused' ? resumeDebate : handleStartClick}
+        className={`w-full py-3.5 rounded-xl text-white font-bold text-base shadow-md hover:opacity-95 transition active:scale-95 ${
+          session.status === 'running'
+            ? 'bg-gradient-to-r from-amber-500 to-orange-600 shadow-amber-500/30'
+            : session.status === 'paused'
+              ? 'bg-gradient-to-r from-emerald-600 to-teal-600 shadow-emerald-500/30'
+              : 'bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 shadow-indigo-500/30'
+        }`}
       >
-        🚀 Start Debate Simulation
+        {session.status === 'running'
+          ? '일시정지'
+          : session.status === 'paused'
+            ? '토론 재개'
+            : session.status === 'completed'
+              ? '새 토론 시작'
+              : '토론 시작'}
       </button>
 
       <PromptPreviewModal

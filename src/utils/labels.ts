@@ -1,4 +1,4 @@
-// DEBATE LAB - Korean display labels for internal English enum values.
+// PANELOGUE - Korean display labels for internal English enum values.
 // The engine/types use English identifiers internally, but the UI should
 // never show a raw English enum value to the user without translation.
 

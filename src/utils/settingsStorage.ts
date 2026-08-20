@@ -1,4 +1,4 @@
-// DEBATE LAB - Optional Browser-Local Full Settings Persistence
+// PANELOGUE - Optional Browser-Local Full Settings Persistence
 // Only used when the user explicitly opts into keyStorage: 'localstorage'.
 // Persists the ENTIRE DebateSettings object - topic, agents (including each
 // agent's own API key override), moderator (including its key override),

@@ -1,4 +1,4 @@
-// DEBATE LAB - Code-Driven Debate Runtime Engine
+// PANELOGUE - Code-Driven Debate Runtime Engine
 
 import { callLLMProvider } from '../services/llmService';
 import type {
@@ -182,9 +182,13 @@ export class DebateEngine {
     isModerator: boolean;
     speakPriorityScores: Record<string, number>;
   } {
-    const { agents, turnMode, preventSpeakerDominance } = this.settings;
+    const { agents, turnMode, preventSpeakerDominance, protectMinorityOpinion } = this.settings;
     const { messages } = this.state;
     const scores: Record<string, number> = {};
+    const stanceValues = agents.map((agent) => this.state.currentStances[agent.id] ?? agent.currentStance);
+    const averageStance = stanceValues.length
+      ? stanceValues.reduce((sum, stance) => sum + stance, 0) / stanceValues.length
+      : 0;
 
     if (this.moderatorSelectedSpeakerId) {
       const selected = agents.find((agent) => agent.id === this.moderatorSelectedSpeakerId);
@@ -232,6 +236,12 @@ export class DebateEngine {
 
       // Assertiveness & Desire to speak
       priority += (agent.personality.assertiveness - 50) * 0.2;
+
+      if (protectMinorityOpinion) {
+        const stance = this.state.currentStances[agent.id] ?? agent.currentStance;
+        const isMinority = (averageStance > 15 && stance < -15) || (averageStance < -15 && stance > 15);
+        if (isMinority) priority += 20;
+      }
 
       // Anti-Dominance Penalty (Section 36)
       if (preventSpeakerDominance) {
@@ -516,7 +526,7 @@ CONSENSUS POLICY: ${this.settings.consensusMode}
 YOUR RESPONSIBILITIES:
 1. Orchestrate and direct the debate between participants.
 2. Ask probing questions, demand evidence for unsupported claims, and prevent off-topic rambling.
-3. Protect minority viewpoints and prevent speaker dominance.
+3. ${this.settings.protectMinorityOpinion ? 'Protect minority viewpoints' : 'Facilitate viewpoints neutrally'} and prevent speaker dominance.
 4. Keep responses concise (2-3 sentences max).
 5. Choose the next panel when useful. Output JSON with public_message, action, next_speaker_id, rationale, and evidence.
 6. rationale must be a concise, user-visible decision basis, not hidden chain-of-thought. evidence is a list of claims or message IDs used.
@@ -698,8 +708,9 @@ Please respond as ${agent.name} adhering to JSON format.
     const now = new Date();
     const hours = now.getHours();
     const minutes = now.getMinutes().toString().padStart(2, '0');
+    const seconds = now.getSeconds().toString().padStart(2, '0');
     const ampm = hours >= 12 ? '오후' : '오전';
     const displayHours = hours % 12 || 12;
-    return `${ampm} ${displayHours}:${minutes}`;
+    return `${ampm} ${displayHours}:${minutes}:${seconds}`;
   }
 }

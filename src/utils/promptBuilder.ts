@@ -1,4 +1,4 @@
-// DEBATE LAB - Dynamic System & User Prompt Builder
+// PANELOGUE - Dynamic System & User Prompt Builder
 
 import type { Agent, DebateSettings, Moderator } from '../types/debate';
 
