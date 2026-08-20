@@ -881,12 +881,12 @@ export const BasicTab: React.FC = () => {
         }`}
       >
         {session.status === 'running'
-          ? '⏸ 토론 일시정지'
+          ? '일시정지'
           : session.status === 'paused'
-            ? '▶ 토론 계속하기'
+            ? '토론 재개'
             : session.status === 'completed'
-              ? '🚀 새 토론 시작'
-              : '🚀 토론 시작'}
+              ? '새 토론 시작'
+              : '토론 시작'}
       </button>
 
       <PromptPreviewModal
