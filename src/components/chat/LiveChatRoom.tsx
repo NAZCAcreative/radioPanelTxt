@@ -4,6 +4,7 @@ import { LiveToolbar } from './LiveToolbar';
 import { MessageItem } from './MessageItem';
 import { AudienceInput } from './AudienceInput';
 import { Sparkles, MessageSquare, Award, AlertTriangle, X, RotateCcw, Info } from 'lucide-react';
+import { getFunDebateMode } from '../../utils/funModes';
 
 interface LiveChatRoomProps {
   onOpenSummary: () => void;
@@ -19,6 +20,7 @@ export const LiveChatRoom: React.FC<LiveChatRoomProps> = ({ onOpenSummary }) => 
   const [showAllMessages, setShowAllMessages] = useState(false);
 
   const isChatDark = settings.chatTheme === 'dark';
+  const funMode = getFunDebateMode(settings.funDebateModeId);
 
   // Auto scroll to bottom when new messages arrive or when thinking text streams
   useEffect(() => {
@@ -42,7 +44,7 @@ export const LiveChatRoom: React.FC<LiveChatRoomProps> = ({ onOpenSummary }) => 
   return (
     <div
       className={`h-full flex flex-col relative overflow-hidden transition-colors ${
-        isChatDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-100/80 text-slate-900'
+        isChatDark ? `${funMode.darkSkin} text-slate-100` : `${funMode.lightSkin} text-slate-900`
       }`}
     >
       {/* Live Toolbar */}
@@ -51,7 +53,7 @@ export const LiveChatRoom: React.FC<LiveChatRoomProps> = ({ onOpenSummary }) => 
       {/* Topic Header Summary Bar */}
       <div
         className={`px-4 py-2 border-b flex items-center justify-between text-sm transition-colors ${
-          isChatDark ? 'bg-slate-900/90 border-slate-800 text-slate-200' : 'bg-white/80 border-slate-200 text-slate-700'
+          isChatDark ? `${funMode.darkHeader} text-slate-200` : `${funMode.lightHeader} text-slate-700`
         }`}
       >
         <div className="truncate pr-4">
@@ -59,7 +61,7 @@ export const LiveChatRoom: React.FC<LiveChatRoomProps> = ({ onOpenSummary }) => 
           <span className={`font-bold ${isChatDark ? 'text-slate-100' : 'text-slate-900'}`}>"{settings.topic}"</span>
         </div>
         <span className="shrink-0 text-[14px] bg-indigo-100 text-indigo-800 font-bold px-2.5 py-0.5 rounded-full border border-indigo-200 shadow-sm">
-          {settings.agents.length} Agents + Host
+          {funMode.emoji} {funMode.name}
         </span>
       </div>
 

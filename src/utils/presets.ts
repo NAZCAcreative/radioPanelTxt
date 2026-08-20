@@ -182,7 +182,7 @@ export const AGENT_PRESET_TEMPLATES: Record<string, AgentPresetTemplate> = {
     personality: { confidence: 90, assertiveness: 80, openness: 60 },
     behavior: { aggressiveness: 55, independentJudgment: 85 },
     epistemic: { evidencePreference: 'data', evidenceStrictness: 65 },
-    customModel: 'x-ai/grok-4.6',
+    customModel: 'x-ai/grok-4.20',
   },
   journalist: {
     name: '김범수',

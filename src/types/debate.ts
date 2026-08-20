@@ -121,6 +121,8 @@ export interface EpistemicStyle {
   factChallengeFrequency: number; // 0 - 100
 }
 
+export type ChatCharacterStyle = 'balanced' | 'fiery' | 'blunt_slang' | 'absurd' | 'comedian' | 'flirty' | 'contrarian' | 'deadpan';
+
 // Single Agent Definition
 export interface Agent {
   id: string;
@@ -136,6 +138,7 @@ export interface Agent {
   personaMode: 'SIMPLE' | 'ADVANCED';
   simplePersona: string;
   speakingStyle: string;
+  chatCharacterStyle?: ChatCharacterStyle;
   
   customModel?: string; // Per-agent model override
 
@@ -354,6 +357,8 @@ export interface DebateSettings {
   advancedModelPerAgent: boolean;
   chatPaceMode: ChatPaceMode; // '기본모드' (realistic delays) vs '배속모드' (fast)
   agentModelDefaultsVersion: number;
+  funDebateModeId: string;
+  noModeratorMode: boolean;
 
   // Topic & Context
   topic: string;

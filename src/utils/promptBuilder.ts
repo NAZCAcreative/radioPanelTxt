@@ -1,9 +1,12 @@
 // PANELOGUE - Dynamic System & User Prompt Builder
 
 import type { Agent, DebateSettings, Moderator } from '../types/debate';
+import { getCharacterStyle, getFunDebateMode } from './funModes';
 
-export function generateAgentSystemPrompt(agent: Agent, _settings: DebateSettings): string {
+export function generateAgentSystemPrompt(agent: Agent, settings: DebateSettings): string {
   const { coreValues, personality, behavior, epistemic } = agent;
+  const funMode = getFunDebateMode(settings.funDebateModeId);
+  const characterStyle = getCharacterStyle(agent.chatCharacterStyle);
 
   const coreValuesDesc = `
 - Progressive vs Conservative: ${coreValues.progressiveVsConservative}/100 (${coreValues.progressiveVsConservative > 50 ? 'Conservative/보수적' : 'Progressive/진보적'})
@@ -56,6 +59,9 @@ ROLE IN DEBATE: ${agent.roleInDebate}
 [PERSONA & SPEAKING STYLE]
 ${agent.personaMode === 'SIMPLE' ? `PERSONA: ${agent.simplePersona}` : `CORE VALUES:\n${coreValuesDesc}\n\nPERSONALITY:\n${personalityDesc}\n\nDEBATE BEHAVIOR:\n${behaviorDesc}`}
 SPEAKING STYLE: ${agent.speakingStyle}
+CHARACTER CHAT STYLE: ${characterStyle.name}. ${characterStyle.prompt}
+SHOW MODE & RELATIONSHIP: ${funMode.name}. ${funMode.prompt}
+MODERATION: ${settings.noModeratorMode ? 'No moderator exists. Address other panelists directly and continue without host cues.' : 'A moderator is present.'}
 
 [EPISTEMIC STYLE (지식 판단)]
 ${epistemicDesc}
@@ -79,6 +85,7 @@ Return your output in valid JSON:
 }
 
 export function generateModeratorSystemPrompt(moderator: Moderator, settings: DebateSettings): string {
+  const funMode = getFunDebateMode(settings.funDebateModeId);
   return `
 [MODERATOR IDENTITY]
 NAME: ${moderator.name}
@@ -86,6 +93,7 @@ ROLE: ${moderator.role}
 PERSONA: ${moderator.persona}
 NEUTRALITY: ${moderator.neutrality}% Neutral
 INTERVENTION FREQUENCY: ${moderator.interventionFrequency}%
+SHOW MODE: ${funMode.name}. ${funMode.prompt}
 
 [MODERATOR RESPONSIBILITIES]
 1. Guide the live debate on topic: "${settings.topic}".

@@ -88,7 +88,7 @@ export async function fetchHotNews(apiKey: string, model: string, requestedCount
         'X-Title': 'Panelogue',
       },
       body: JSON.stringify({
-        model: model || 'openai/gpt-5.6',
+        model: model || 'openai/gpt-5.5-pro',
         messages: [
           {
             role: 'system',
