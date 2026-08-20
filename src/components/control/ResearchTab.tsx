@@ -85,8 +85,13 @@ export const ResearchTab: React.FC = () => {
           isLight ? 'bg-slate-50 border-slate-200' : 'bg-gray-950 border-gray-800'
         }`}>
           <div>
-            <span className={`text-sm font-bold block ${isLight ? 'text-slate-800' : 'text-gray-200'}`}>
-              팩트 보존 원장 (Fact Preservation Ledger)
+            <span className={`text-sm font-bold flex items-center gap-1 ${isLight ? 'text-slate-800' : 'text-gray-200'}`}>
+              <span>팩트 보존 원장 (Fact Preservation Ledger)</span>
+              <HelpTooltip
+                title="팩트 원장 구현 방법"
+                description="토론에서 검증 대상으로 관리하는 사실을 일반 대화 기록과 분리해 유지합니다."
+                method={`1. 세션의 factLedger 배열에 사실 문장, 출처, 검증 상태를 저장합니다.\n2. 기능이 켜져 있으면 매 패널 호출 시 현재 원장을 프롬프트의 FACT LEDGER 블록에 삽입합니다.\n3. 패널은 SUPPORTED·UNSUPPORTED·DISPUTED·UNKNOWN 상태를 보고 확정 사실과 논쟁 중인 주장을 구분합니다.\n4. 현재 구현은 외부 검색으로 자동 검증하지 않으며, 저장된 원장을 일관되게 전달하는 방식입니다.`}
+              />
             </span>
             <span className="text-[14px] text-slate-500">
               중요 검증 사실을 별도 FACT LEDGER로 보존하여 대화 중 왜곡 방지
@@ -161,8 +166,13 @@ export const ResearchTab: React.FC = () => {
             isLight ? 'bg-slate-50 border-slate-200' : 'bg-gray-950 border-gray-800'
           }`}>
             <div>
-              <span className={`text-sm font-bold block ${isLight ? 'text-slate-800' : 'text-gray-200'}`}>
-                특정 에이전트 독점 방지 (Speaker Dominance)
+              <span className={`text-sm font-bold flex items-center gap-1 ${isLight ? 'text-slate-800' : 'text-gray-200'}`}>
+                <span>특정 에이전트 독점 방지 (Speaker Dominance)</span>
+                <HelpTooltip
+                  title="발언 독점 방지 계산 방법"
+                  description="최근 발언 기록을 점수화해 같은 패널이 계속 선택되는 것을 억제합니다."
+                  method={`1. 각 패널은 기본 발언 점수 50점에서 시작합니다.\n2. 주제와 전문 분야가 일치하면 +15점, 직전 발언에서 직접 지목되면 +25점을 받습니다.\n3. 적극성 수치에 따라 -10~+10점이 추가됩니다.\n4. 최근 6개 메시지에서 같은 패널이 2회 이상 발언했다면 35점을 감점합니다.\n5. 최종 점수를 0~100으로 제한한 뒤 가장 높은 패널을 선택합니다. 사회자 개입 턴과 순차 모드에는 이 계산이 그대로 적용되지 않을 수 있습니다.`}
+                />
               </span>
               <span className="text-[14px] text-slate-500">지나치게 많이 말한 에이전트의 다음 발언 우선순위 감점</span>
             </div>
@@ -178,8 +188,13 @@ export const ResearchTab: React.FC = () => {
             isLight ? 'bg-slate-50 border-slate-200' : 'bg-gray-950 border-gray-800'
           }`}>
             <div>
-              <span className={`text-sm font-bold block ${isLight ? 'text-slate-800' : 'text-gray-200'}`}>
-                소수 의견 보호 기능 (Protect Minority)
+              <span className={`text-sm font-bold flex items-center gap-1 ${isLight ? 'text-slate-800' : 'text-gray-200'}`}>
+                <span>소수 의견 보호 기능 (Protect Minority)</span>
+                <HelpTooltip
+                  title="소수 의견 보호 방법"
+                  description="전체 입장과 반대 방향인 패널의 발언 기회가 사라지지 않게 보정합니다."
+                  method={`1. 현재 패널들의 입장 점수 평균으로 토론의 우세 방향을 계산합니다.\n2. 평균이 찬성인데 반대 입장인 패널, 또는 평균이 반대인데 찬성 입장인 패널을 소수 관점으로 봅니다.\n3. 동적 발언 선택에서 해당 패널의 우선순위에 보너스를 부여합니다.\n4. 사회자 프롬프트에도 소수 관점을 보호하라는 정책을 전달합니다. 입장이 중립 범위에 몰려 있으면 별도 보너스를 주지 않습니다.`}
+                />
               </span>
               <span className="text-[14px] text-slate-500">다수 의견과 다른 소수 입장의 에이전트에게 사회자가 발언 기회 부여</span>
             </div>
@@ -195,8 +210,13 @@ export const ResearchTab: React.FC = () => {
             isLight ? 'bg-slate-50 border-slate-200' : 'bg-gray-950 border-gray-800'
           }`}>
             <div>
-              <span className={`text-sm font-bold block ${isLight ? 'text-slate-800' : 'text-gray-200'}`}>
-                무의미 동조 금지 모드 (Anti-Echo)
+              <span className={`text-sm font-bold flex items-center gap-1 ${isLight ? 'text-slate-800' : 'text-gray-200'}`}>
+                <span>무의미 동조 금지 모드 (Anti-Echo)</span>
+                <HelpTooltip
+                  title="무의미 동조 억제 방법"
+                  description="내용 없는 반복 동의를 줄이고 새 정보가 포함된 응답을 유도합니다."
+                  method={`1. 패널 시스템 프롬프트에 빈 동의를 금지하고 근거·반례·질문 중 하나를 추가하도록 명시합니다.\n2. 토론 정책 블록에도 새 정보를 추가하라는 규칙을 삽입합니다.\n3. 모델이 반환한 speech_act와 근거 로그를 함께 저장해 이후 품질 검토에 사용할 수 있습니다.\n4. 현재는 생성 후 문장을 강제로 삭제하는 필터가 아니라 모델 생성 단계에서 억제하는 방식입니다.`}
+                />
               </span>
               <span className="text-[14px] text-slate-500 font-medium">"저도 동의합니다" 식의 정보 없는 맹목적 동조 답변 차단</span>
             </div>

@@ -37,6 +37,8 @@ export const BasicTab: React.FC = () => {
     removeAgent,
     generateRandomPersonasForTopic,
     startDebate,
+    pauseDebate,
+    resumeDebate,
     session,
   } = useDebateStore();
 
@@ -754,11 +756,22 @@ export const BasicTab: React.FC = () => {
 
       {/* Start Button */}
       <button
-        onClick={handleStartClick}
-        disabled={session.status === 'running'}
-        className="w-full py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-bold text-base shadow-md shadow-indigo-500/30 hover:opacity-95 transition disabled:opacity-50 active:scale-95"
+        onClick={session.status === 'running' ? pauseDebate : session.status === 'paused' ? resumeDebate : handleStartClick}
+        className={`w-full py-3.5 rounded-xl text-white font-bold text-base shadow-md hover:opacity-95 transition active:scale-95 ${
+          session.status === 'running'
+            ? 'bg-gradient-to-r from-amber-500 to-orange-600 shadow-amber-500/30'
+            : session.status === 'paused'
+              ? 'bg-gradient-to-r from-emerald-600 to-teal-600 shadow-emerald-500/30'
+              : 'bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 shadow-indigo-500/30'
+        }`}
       >
-        🚀 Start Debate Simulation
+        {session.status === 'running'
+          ? '⏸ 토론 일시정지'
+          : session.status === 'paused'
+            ? '▶ 토론 계속하기'
+            : session.status === 'completed'
+              ? '🚀 새 토론 시작'
+              : '🚀 토론 시작'}
       </button>
 
       <PromptPreviewModal

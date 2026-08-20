@@ -151,6 +151,7 @@ export interface AgentPresetTemplate {
   personality: Partial<PersonalityParameters>;
   behavior: Partial<DebateBehavior>;
   epistemic: Partial<EpistemicStyle>;
+  customModel?: string;
 }
 
 export const AGENT_PRESET_TEMPLATES: Record<string, AgentPresetTemplate> = {
@@ -181,6 +182,7 @@ export const AGENT_PRESET_TEMPLATES: Record<string, AgentPresetTemplate> = {
     personality: { confidence: 90, assertiveness: 80, openness: 60 },
     behavior: { aggressiveness: 55, independentJudgment: 85 },
     epistemic: { evidencePreference: 'data', evidenceStrictness: 65 },
+    customModel: 'x-ai/grok-4.20',
   },
   journalist: {
     name: '김범수',
@@ -195,6 +197,7 @@ export const AGENT_PRESET_TEMPLATES: Record<string, AgentPresetTemplate> = {
     personality: { curiosity: 90, skepticism: 80, agreeableness: 55 },
     behavior: { questionFrequency: 85, quoteOthers: 70 },
     epistemic: { evidencePreference: 'data', uncertaintyExpression: 'cautious' },
+    customModel: 'deepseek/deepseek-v4-flash',
   },
   economist: {
     name: '김동건',
@@ -209,6 +212,7 @@ export const AGENT_PRESET_TEMPLATES: Record<string, AgentPresetTemplate> = {
     personality: { formality: 90, emotionality: 15, confidence: 75 },
     behavior: { evidenceProvision: 90, topicFocusVsExpansion: 25 },
     epistemic: { evidencePreference: 'papers', evidenceStrictness: 90 },
+    customModel: 'anthropic/claude-opus-4.8',
   },
   ethicist: {
     name: '도현',
@@ -246,7 +250,7 @@ export const DEFAULT_MODERATOR: Moderator = {
   role: '시사 토론 전문 진행자',
   persona: '주제 논점을 명확하게 정돈하고 양측의 발언 시간을 균형 있게 배분함. 근거 없는 주장이나 답변 회피를 주도면밀하게 짚어낸다.',
   speakingStyle: '격식 있고 차분하지만 권위 있는 어조. "개입하겠습니다", "~에 대해 답변 부탁드립니다" 등의 유려한 진행 어휘.',
-  customModel: 'anthropic/claude-opus-6', // 사회자 기본 모델: Anthropic Claude 최신 모델
+  customModel: 'anthropic/claude-opus-4.8', // 사회자 기본 모델
   neutrality: 85,
   interventionFrequency: 60,
   behaviors: {
@@ -290,6 +294,7 @@ export function getInitialAgents(): Agent[] {
     personaMode: 'SIMPLE',
     simplePersona: tmpl.simplePersona,
     speakingStyle: tmpl.speakingStyle,
+    customModel: tmpl.customModel,
     coreValues: { ...DEFAULT_CORE_VALUES, ...tmpl.coreValues },
     personality: { ...DEFAULT_PERSONALITY, ...tmpl.personality },
     behavior: { ...DEFAULT_BEHAVIOR, ...tmpl.behavior },

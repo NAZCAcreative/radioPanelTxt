@@ -48,7 +48,7 @@ export const PresetsModal: React.FC<PresetsModalProps> = ({ isOpen, onClose }) =
         >
           <h2 className={`text-lg font-bold flex items-center gap-2 ${isLight ? 'text-slate-900' : 'text-white'}`}>
             <Layers className="w-5 h-5 text-indigo-600" />
-            <span>Debate Simulation Presets</span>
+            <span>패널로그 토론 프리셋</span>
           </h2>
           <button
             onClick={onClose}

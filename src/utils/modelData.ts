@@ -13,10 +13,12 @@ export interface LLMModelMeta {
 }
 
 const LEGACY_MODEL_IDS: Record<string, string> = {
-  'anthropic/claude-opus-6': 'anthropic/claude-opus-4.8-fast',
+  'anthropic/claude-opus-6': 'anthropic/claude-opus-4.8',
   'anthropic/claude-3.7-sonnet': 'anthropic/claude-sonnet-5',
   'anthropic/claude-3.5-sonnet': 'anthropic/claude-sonnet-4.6',
   'anthropic/claude-3.5-haiku': 'anthropic/claude-haiku-4.5',
+  'x-ai/grok-2-1212': 'x-ai/grok-4.20',
+  'deepseek/deepseek-v4': 'deepseek/deepseek-v4-flash',
 };
 
 export function normalizeOpenRouterModelId(modelId?: string): string | undefined {
@@ -175,8 +177,8 @@ export const OPENROUTER_MODELS: LLMModelMeta[] = [
 
   // --- ANTHROPIC ---
   {
-    id: 'anthropic/claude-opus-4.8-fast',
-    name: 'Claude Opus 4.8 Fast',
+    id: 'anthropic/claude-opus-4.8',
+    name: 'Claude Opus 4.8',
     provider: 'Anthropic',
     costInput: '$18.00 / 1M',
     costOutput: '$90.00 / 1M',
@@ -275,8 +277,8 @@ export const OPENROUTER_MODELS: LLMModelMeta[] = [
     rank: 97,
   },
   {
-    id: 'x-ai/grok-2-1212',
-    name: 'xAI Grok 2',
+    id: 'x-ai/grok-4.20',
+    name: 'xAI Grok 4.20',
     provider: 'xAI',
     costInput: '$2.00 / 1M',
     costOutput: '$10.00 / 1M',
@@ -289,8 +291,8 @@ export const OPENROUTER_MODELS: LLMModelMeta[] = [
 
   // --- DEEPSEEK ---
   {
-    id: 'deepseek/deepseek-v4',
-    name: 'DeepSeek V4 Flash/Pro',
+    id: 'deepseek/deepseek-v4-flash',
+    name: 'DeepSeek V4 Flash',
     provider: 'DeepSeek',
     costInput: '$0.25 / 1M',
     costOutput: '$0.85 / 1M',

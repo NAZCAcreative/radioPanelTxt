@@ -414,7 +414,11 @@ export const useDebateStore = create<DebateStore>((set, get) => {
         speakerName: 'USER (관객)',
         isAudience: true,
         text: `[관객 질문] ${text} (대상: ${targetType === 'moderator' ? '사회자' : targetType === 'all' ? '전체 패널' : targetAgentId})`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        timestamp: new Date().toLocaleTimeString('ko-KR', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        }),
         turn: get().session.currentTurn,
       };
 

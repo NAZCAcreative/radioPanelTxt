@@ -83,7 +83,7 @@ export async function fetchHotNews(apiKey: string, model: string): Promise<LiveH
         'Content-Type': 'application/json',
         Authorization: `Bearer ${cleanKey}`,
         'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : 'http://localhost',
-        'X-Title': 'Debate Lab Multi-Agent Simulator',
+        'X-Title': 'Panelogue',
       },
       body: JSON.stringify({
         model: model || 'openai/gpt-5.6',

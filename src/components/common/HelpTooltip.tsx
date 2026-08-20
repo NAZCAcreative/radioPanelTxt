@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { HelpCircle, Code, Info, X } from 'lucide-react';
 import { useDebateStore } from '../../store/useDebateStore';
 
@@ -7,6 +8,7 @@ interface HelpTooltipProps {
   description: string;
   impact?: string;
   promptExample?: string;
+  method?: string;
   // Which edge of the trigger the popover hangs from. Default 'right' expands
   // leftward from the trigger (fine when there's room to the left). Use 'left'
   // when the trigger sits near the left edge of a clipped (overflow-hidden)
@@ -19,18 +21,24 @@ export const HelpTooltip: React.FC<HelpTooltipProps> = ({
   description,
   impact,
   promptExample,
-  align = 'right',
+  method,
 }) => {
   const { settings } = useDebateStore();
   const [isOpen, setIsOpen] = useState(false);
   const isLight = settings.theme !== 'dark';
   const containerRef = useRef<HTMLDivElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
 
   // Close popover on outside click, matching ModelSelectBox's dropdown behavior.
   useEffect(() => {
     if (!isOpen) return;
     const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(target) &&
+        !popupRef.current?.contains(target)
+      ) {
         setIsOpen(false);
       }
     };
@@ -39,32 +47,44 @@ export const HelpTooltip: React.FC<HelpTooltipProps> = ({
   }, [isOpen]);
 
   return (
-    <div className="relative inline-block ml-1 z-20" ref={containerRef}>
+    <div
+      className={`relative inline-block ml-1 ${isOpen ? 'z-[1000]' : 'z-10'}`}
+      ref={containerRef}
+    >
       <button
         type="button"
         onClick={(e) => {
           e.stopPropagation();
           setIsOpen(!isOpen);
         }}
-        className={`inline-flex items-center justify-center p-0.5 rounded-full transition ${
+        className={`inline-flex items-center justify-center rounded-full transition ${method ? 'gap-1 px-2 py-0.5 text-[12px] font-bold border' : 'p-0.5'} ${
           isLight
-            ? 'text-slate-400 hover:text-indigo-600 hover:bg-slate-200'
-            : 'text-gray-500 hover:text-indigo-400 hover:bg-gray-800'
+            ? 'text-slate-500 hover:text-indigo-600 hover:bg-slate-200 border-slate-300'
+            : 'text-gray-400 hover:text-indigo-400 hover:bg-gray-800 border-gray-700'
         }`}
         title="설명 및 프롬프트 주입 방식 보기"
       >
         <HelpCircle className="w-3.5 h-3.5" />
+        {method && <span>방법 설명</span>}
       </button>
 
       {/* Popover Card */}
-      {isOpen && (
+      {isOpen && createPortal(
         <div
-          className={`fixed inset-0 sm:absolute sm:inset-auto sm:top-6 ${align === 'left' ? 'sm:left-0' : 'sm:right-0'} w-full sm:w-80 p-4 rounded-xl border shadow-xl z-50 animate-fadeIn ${
+          className="fixed inset-0 z-[5000] flex items-center justify-center bg-black/35 p-3 sm:p-6 backdrop-blur-[1px]"
+          onMouseDown={() => setIsOpen(false)}
+        >
+        <div
+          ref={popupRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label={title}
+          className={`w-full max-w-md max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-3rem)] overflow-y-auto p-4 rounded-xl border shadow-2xl isolate animate-fadeIn ${
             isLight
-              ? 'bg-white border-slate-200 text-slate-800 shadow-indigo-500/10'
+              ? 'bg-white border-indigo-200 text-slate-800 shadow-indigo-950/25'
               : 'bg-gray-900 border-gray-800 text-gray-100 shadow-black/50'
           }`}
-          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
         >
           {/* Header */}
           <div className="flex items-center justify-between border-b pb-2 mb-2 border-slate-200 dark:border-gray-800">
@@ -83,6 +103,15 @@ export const HelpTooltip: React.FC<HelpTooltipProps> = ({
           {/* Description */}
           <div className="space-y-2 text-sm leading-relaxed">
             <p className={`whitespace-pre-line ${isLight ? 'text-slate-700' : 'text-gray-300'}`}>{description}</p>
+
+            {method && (
+              <div className={`p-2.5 rounded border text-[14px] ${
+                isLight ? 'bg-purple-50 border-purple-200 text-slate-700' : 'bg-purple-950/30 border-purple-900/60 text-gray-300'
+              }`}>
+                <span className="font-bold text-purple-700 dark:text-purple-300 block mb-1">⚙️ 실제 동작 방법</span>
+                <p className="whitespace-pre-line">{method}</p>
+              </div>
+            )}
 
             {impact && (
               <div className={`p-2 rounded border text-[14px] ${
@@ -109,6 +138,8 @@ export const HelpTooltip: React.FC<HelpTooltipProps> = ({
             )}
           </div>
         </div>
+        </div>,
+        document.body
       )}
     </div>
   );

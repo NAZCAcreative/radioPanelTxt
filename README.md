@@ -1,6 +1,6 @@
-# RadioPanelTxt / Debate Lab
+# 패널로그 (Panelogue)
 
-React, TypeScript, Zustand 기반의 멀티 에이전트 토론 시뮬레이터입니다. 데모 응답 또는 OpenAI, Anthropic, Gemini, OpenRouter, Ollama 및 OpenAI 호환 API를 사용할 수 있습니다.
+React, TypeScript, Zustand 기반의 AI 패널 토론 시뮬레이션 플랫폼입니다. 여러 AI 패널과 사회자가 주제별 토론을 진행하고 발언 근거, 입장 변화, 합의 과정을 기록합니다.
 
 ## 실행
 

@@ -63,7 +63,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div>
           <div className="flex items-center gap-2">
             <h1 className={`font-bold text-xl tracking-wider ${isLight ? 'text-slate-900' : 'text-white'}`}>
-              DEBATE LAB
+              패널로그
             </h1>
             <span
               className={`hidden sm:inline-block text-[13px] uppercase font-bold px-2 py-0.5 rounded-full border whitespace-nowrap ${
@@ -72,7 +72,7 @@ export const Header: React.FC<HeaderProps> = ({
                   : 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
               }`}
             >
-              v1.0 Multi-Agent
+              Panelogue · AI 패널 토론
             </span>
           </div>
           <p className={`hidden sm:block text-sm whitespace-nowrap ${isLight ? 'text-slate-500' : 'text-gray-400'}`}>
