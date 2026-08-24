@@ -6,9 +6,21 @@ import { PresetsModal } from './components/common/PresetsModal';
 import { EndSummaryModal } from './components/summary/EndSummaryModal';
 import { SessionManagerModal } from './components/common/SessionManagerModal';
 import { AgentPresetLibraryModal } from './components/common/AgentPresetLibraryModal';
+import { SharedDebateView } from './components/share/SharedDebateView';
 import { Sliders } from 'lucide-react';
 
+// A shared replay link (?share=<id>) opens a standalone read-only page
+// instead of the live app shell - it has its own settings/session snapshot
+// baked in and has no business touching the viewer's local store.
+const sharedDebateId = typeof window !== 'undefined'
+  ? new URLSearchParams(window.location.search).get('share')
+  : null;
+
 export function App() {
+  return sharedDebateId ? <SharedDebateView shareId={sharedDebateId} /> : <MainApp />;
+}
+
+function MainApp() {
   const [isPresetsOpen, setIsPresetsOpen] = useState(false);
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   const [isSessionManagerOpen, setIsSessionManagerOpen] = useState(false);

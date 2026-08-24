@@ -1,8 +1,9 @@
-import React from 'react';
-import { X, FileText, Code, TrendingUp, Sparkles } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, FileText, Code, TrendingUp, Sparkles, Link2, Loader2, Check } from 'lucide-react';
 import { useDebateStore } from '../../store/useDebateStore';
 import { HelpTooltip } from '../common/HelpTooltip';
 import { ClaimGraph } from './ClaimGraph';
+import { createShareLink } from '../../utils/shareDebate';
 
 interface EndSummaryModalProps {
   isOpen: boolean;
@@ -12,8 +13,28 @@ interface EndSummaryModalProps {
 export const EndSummaryModal: React.FC<EndSummaryModalProps> = ({ isOpen, onClose }) => {
   const { settings, session } = useDebateStore();
   const isLight = settings.theme !== 'dark';
+  const [shareState, setShareState] = useState<
+    { status: 'idle' } | { status: 'loading' } | { status: 'done'; url: string } | { status: 'error'; message: string }
+  >({ status: 'idle' });
+  const [justCopied, setJustCopied] = useState(false);
 
   if (!isOpen) return null;
+
+  const handleCreateShareLink = async () => {
+    setShareState({ status: 'loading' });
+    try {
+      const url = await createShareLink(settings, session);
+      setShareState({ status: 'done', url });
+    } catch (err) {
+      setShareState({ status: 'error', message: err instanceof Error ? err.message : String(err) });
+    }
+  };
+
+  const handleCopyShareLink = async (url: string) => {
+    await navigator.clipboard.writeText(url);
+    setJustCopied(true);
+    setTimeout(() => setJustCopied(false), 1500);
+  };
 
   // Calculate stance deltas
   const stanceDeltas = settings.agents.map((agent) => {
@@ -316,6 +337,53 @@ export const EndSummaryModal: React.FC<EndSummaryModalProps> = ({ isOpen, onClos
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Share Link */}
+          <div
+            className={`p-4 rounded-xl border space-y-3 ${
+              isLight ? 'bg-indigo-50/60 border-indigo-200' : 'bg-indigo-950/30 border-indigo-500/30'
+            }`}
+          >
+            <h3 className="font-bold text-sm flex items-center gap-1.5">
+              <Link2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              <span>리플레이 공유 링크</span>
+              <HelpTooltip
+                title="공유 링크란?"
+                description="이 토론의 결과(대화 기록·주장 관계도·입장 변화 등)를 읽기 전용 페이지로 볼 수 있는 링크를 만듭니다. API 키는 절대 포함되지 않으며, 링크를 아는 사람은 누구나 볼 수 있습니다."
+              />
+            </h3>
+            {shareState.status === 'done' ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  readOnly
+                  value={shareState.url}
+                  onFocus={(e) => e.currentTarget.select()}
+                  className={`flex-1 min-w-[200px] border rounded-lg px-2.5 py-1.5 text-sm font-mono ${
+                    isLight ? 'bg-white border-slate-300 text-slate-800' : 'bg-gray-900 border-gray-700 text-gray-200'
+                  }`}
+                />
+                <button
+                  onClick={() => handleCopyShareLink(shareState.url)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm transition shrink-0 whitespace-nowrap"
+                >
+                  {justCopied ? <Check className="w-3.5 h-3.5" /> : <Link2 className="w-3.5 h-3.5" />}
+                  <span>{justCopied ? '복사됨' : '링크 복사'}</span>
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleCreateShareLink}
+                disabled={shareState.status === 'loading'}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white font-bold text-sm transition shrink-0 whitespace-nowrap"
+              >
+                {shareState.status === 'loading' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Link2 className="w-3.5 h-3.5" />}
+                <span>{shareState.status === 'loading' ? '생성 중...' : '공유 링크 만들기'}</span>
+              </button>
+            )}
+            {shareState.status === 'error' && (
+              <p className="text-rose-500 text-[13px]">{shareState.message}</p>
+            )}
           </div>
 
           {/* Export Options */}
