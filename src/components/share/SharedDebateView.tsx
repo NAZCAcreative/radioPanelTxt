@@ -82,7 +82,9 @@ export const SharedDebateView: React.FC<SharedDebateViewProps> = ({ shareId }) =
             패널로그에서 새 토론 시작하기
           </button>
           <div className={`p-4 rounded-xl border ${isLight ? 'bg-indigo-50/60 border-indigo-200' : 'bg-indigo-950/40 border-indigo-500/30'}`}>
-            <span className="text-[13px] font-bold text-indigo-600 dark:text-indigo-400 block mb-1">공유된 토론 리플레이</span>
+            <span className="text-[13px] font-bold text-indigo-600 dark:text-indigo-400 block mb-1">
+              공유된 토론 리플레이{payload.ownerName ? ` · 공유자: ${payload.ownerName}` : ''}
+            </span>
             <p className="text-lg font-bold leading-relaxed">"{payload.topic}"</p>
           </div>
         </header>

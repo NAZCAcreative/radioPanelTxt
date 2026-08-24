@@ -12,6 +12,7 @@ import {
   Moon,
   Save,
   Drama,
+  Link2,
 } from 'lucide-react';
 import { useDebateStore } from '../../store/useDebateStore';
 
@@ -20,6 +21,7 @@ interface HeaderProps {
   onOpenSummary: () => void;
   onOpenSessionManager: () => void;
   onOpenAgentLibrary: () => void;
+  onOpenMyDebates: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -27,6 +29,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSummary,
   onOpenSessionManager,
   onOpenAgentLibrary,
+  onOpenMyDebates,
 }) => {
   const {
     settings,
@@ -200,6 +203,20 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <Drama className="w-3.5 h-3.5 text-pink-500" />
           <span className="hidden xl:inline">에이전트 프리셋</span>
+        </button>
+
+        {/* My Shared Debates Modal Button */}
+        <button
+          onClick={onOpenMyDebates}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition border shrink-0 whitespace-nowrap ${
+            isLight
+              ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
+              : 'bg-gray-800 hover:bg-gray-700 text-gray-200 border-gray-700'
+          }`}
+          title="현재 API 키로 공유했던 토론 목록을 봅니다"
+        >
+          <Link2 className="w-3.5 h-3.5 text-indigo-500" />
+          <span className="hidden xl:inline">내 공유 토론</span>
         </button>
 
         {/* Debug Mode Toggle */}

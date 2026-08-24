@@ -6,6 +6,7 @@ import { PresetsModal } from './components/common/PresetsModal';
 import { EndSummaryModal } from './components/summary/EndSummaryModal';
 import { SessionManagerModal } from './components/common/SessionManagerModal';
 import { AgentPresetLibraryModal } from './components/common/AgentPresetLibraryModal';
+import { MyDebatesModal } from './components/common/MyDebatesModal';
 import { SharedDebateView } from './components/share/SharedDebateView';
 import { Sliders } from 'lucide-react';
 
@@ -25,6 +26,7 @@ function MainApp() {
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   const [isSessionManagerOpen, setIsSessionManagerOpen] = useState(false);
   const [isAgentLibraryOpen, setIsAgentLibraryOpen] = useState(false);
+  const [isMyDebatesOpen, setIsMyDebatesOpen] = useState(false);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
 
   return (
@@ -35,6 +37,7 @@ function MainApp() {
         onOpenSummary={() => setIsSummaryOpen(true)}
         onOpenSessionManager={() => setIsSessionManagerOpen(true)}
         onOpenAgentLibrary={() => setIsAgentLibraryOpen(true)}
+        onOpenMyDebates={() => setIsMyDebatesOpen(true)}
       />
 
       {/* Mobile Control Panel Toggle Button */}
@@ -80,6 +83,7 @@ function MainApp() {
         isOpen={isAgentLibraryOpen}
         onClose={() => setIsAgentLibraryOpen(false)}
       />
+      <MyDebatesModal isOpen={isMyDebatesOpen} onClose={() => setIsMyDebatesOpen(false)} />
     </div>
   );
 }
