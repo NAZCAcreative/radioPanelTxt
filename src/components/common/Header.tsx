@@ -47,6 +47,20 @@ export const Header: React.FC<HeaderProps> = ({
   const activeThinkingAgent = settings.agents.find((a) => a.id === session.activeThinkingAgentId) ||
     (session.activeThinkingAgentId === settings.moderator.id ? settings.moderator : null);
 
+  // Resettable from any in-progress state, not just after a debate finishes
+  // on its own - a bad run (or one stuck on an error) needed to be resumed
+  // and played out to completion before there was any way to scrap it and
+  // start over with the same topic/panel.
+  const handleResetDebate = () => {
+    if (
+      window.confirm(
+        '현재 토론 기록이 초기화됩니다. 필요하다면 먼저 "요약 및 결과 보고서"에서 내보내거나 "세션 저장"을 이용하세요. 계속할까요?'
+      )
+    ) {
+      resetDebate();
+    }
+  };
+
   return (
     <header
       className={`h-16 border-b px-4 flex items-center justify-between z-20 sticky top-0 transition-colors ${
@@ -217,7 +231,7 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Primary Play / Pause / Reset Control - kept outside the scrollable
           area above so it's always fully visible, never scrolled off-screen */}
-      <div className="shrink-0 pl-2.5">
+      <div className="shrink-0 pl-2.5 flex items-center gap-2">
         {session.status === 'idle' ? (
           <button
             onClick={startDebate}
@@ -227,41 +241,47 @@ export const Header: React.FC<HeaderProps> = ({
             <Play className="w-3.5 h-3.5 fill-current shrink-0" />
             <span className="hidden sm:inline">토론 시작</span>
           </button>
-        ) : isRunning ? (
-          <button
-            onClick={pauseDebate}
-            title="일시정지"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-white font-bold text-sm transition shadow-sm shrink-0 whitespace-nowrap"
-          >
-            <Pause className="w-3.5 h-3.5 fill-current shrink-0" />
-            <span className="hidden sm:inline">일시정지</span>
-          </button>
-        ) : isPaused ? (
-          <button
-            onClick={resumeDebate}
-            title="재개"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm transition shadow-sm shrink-0 whitespace-nowrap"
-          >
-            <Play className="w-3.5 h-3.5 fill-current shrink-0" />
-            <span className="hidden sm:inline">재개</span>
-          </button>
         ) : (
-          <button
-            onClick={() => {
-              if (
-                window.confirm(
-                  '현재 토론 기록이 초기화됩니다. 필요하다면 먼저 "요약 및 결과 보고서"에서 내보내거나 "세션 저장"을 이용하세요. 계속할까요?'
-                )
-              ) {
-                resetDebate();
-              }
-            }}
-            title="새 토론 시작"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-sm transition border border-slate-300 shrink-0 whitespace-nowrap"
-          >
-            <RotateCcw className="w-3.5 h-3.5 shrink-0" />
-            <span className="hidden sm:inline">새 토론 시작</span>
-          </button>
+          <>
+            {isRunning && (
+              <button
+                onClick={pauseDebate}
+                title="일시정지"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-white font-bold text-sm transition shadow-sm shrink-0 whitespace-nowrap"
+              >
+                <Pause className="w-3.5 h-3.5 fill-current shrink-0" />
+                <span className="hidden sm:inline">일시정지</span>
+              </button>
+            )}
+            {isPaused && (
+              <button
+                onClick={resumeDebate}
+                title="재개"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm transition shadow-sm shrink-0 whitespace-nowrap"
+              >
+                <Play className="w-3.5 h-3.5 fill-current shrink-0" />
+                <span className="hidden sm:inline">재개</span>
+              </button>
+            )}
+            {/* Available in every non-idle state (running/paused/completed),
+                not just after natural completion - lets a bad or stuck run
+                be scrapped immediately and re-debated with the same
+                topic/panel instead of forcing it to play out first. */}
+            <button
+              onClick={handleResetDebate}
+              title={isCompleted ? '새 토론 시작' : '리셋하고 새로 시작'}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-sm transition shrink-0 whitespace-nowrap ${
+                isCompleted
+                  ? 'bg-slate-200 hover:bg-slate-300 text-slate-800 border border-slate-300'
+                  : isLight
+                  ? 'bg-white hover:bg-slate-100 text-slate-600 border border-slate-300'
+                  : 'bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700'
+              }`}
+            >
+              <RotateCcw className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden sm:inline">{isCompleted ? '새 토론 시작' : '리셋'}</span>
+            </button>
+          </>
         )}
       </div>
     </header>
