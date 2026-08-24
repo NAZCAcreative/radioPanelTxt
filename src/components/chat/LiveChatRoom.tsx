@@ -65,6 +65,16 @@ export const LiveChatRoom: React.FC<LiveChatRoomProps> = ({ onOpenSummary }) => 
         </span>
       </div>
 
+      {/* Disclaimer: panels can state plausible-sounding but unverified figures/sources */}
+      <div
+        className={`px-4 py-1.5 border-b text-[13px] flex items-center gap-1.5 shrink-0 ${
+          isChatDark ? 'border-slate-800 bg-slate-900/60 text-slate-400' : 'border-slate-200 bg-slate-50 text-slate-500'
+        }`}
+      >
+        <Info className="w-3 h-3 shrink-0" />
+        <span>토론 중 언급되는 수치·출처·통계는 AI가 생성한 것으로, 실제 사실과 다를 수 있습니다.</span>
+      </div>
+
       {/* No API Key Warning: provider selected but no API key exists anywhere */}
       {noEffectiveApiKey && (
         <div className="px-4 py-2 border-b border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[14px] font-semibold flex items-center gap-2 shrink-0">

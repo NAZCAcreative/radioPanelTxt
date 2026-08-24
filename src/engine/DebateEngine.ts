@@ -367,7 +367,17 @@ export class DebateEngine {
         evidence: response.evidence || [],
         selectedSpeakerId: selectedSpeaker?.id,
         timestamp: Date.now(),
-      }],
+      }, ...(response.usedFallbackModel ? [{
+        id: `log_fallback_mod_${turn}`,
+        turn,
+        actorId: mod.id,
+        actorName: mod.name,
+        category: 'model_fallback' as const,
+        summary: `설정된 모델이 빈 응답을 반복해 이번 턴만 ${response.usedFallbackModel}로 대체되었습니다.`,
+        evidence: [],
+        timestamp: Date.now(),
+      }] : []),
+      ],
     }));
   }
 
@@ -479,7 +489,17 @@ export class DebateEngine {
         rationale: `찬성 ${consensus.proCount}, 중립 ${consensus.neutralCount}, 반대 ${consensus.conCount}; 일치율 ${Math.round(consensus.agreementRatio * 100)}%`,
         evidence: consensus.unresolvedClaims,
         timestamp: Date.now(),
-      }],
+      }, ...(response.usedFallbackModel ? [{
+        id: `log_fallback_${agent.id}_${turn}`,
+        turn,
+        actorId: agent.id,
+        actorName: agent.name,
+        category: 'model_fallback' as const,
+        summary: `설정된 모델이 빈 응답을 반복해 이번 턴만 ${response.usedFallbackModel}로 대체되었습니다.`,
+        evidence: [],
+        timestamp: Date.now(),
+      }] : []),
+      ],
     }});
   }
 
@@ -697,17 +717,31 @@ Please respond as ${agent.name} adhering to JSON format.
     }
 
     if (response.claimsCreated && response.claimsCreated.length > 0) {
-      const newClaims: ArgumentClaim[] = response.claimsCreated.map((cId: string) => ({
-        claimId: cId,
-        speakerId: agent.id,
-        speakerName: agent.name,
-        claimText: response.message,
-        supports: [],
-        attackedBy: response.claimsAttacked || [],
-        status: 'proposed',
-      }));
+      this.updateState((s) => {
+        // Panels are instructed to reuse a "stable claim id" when they
+        // return to a point they already raised. Appending unconditionally
+        // duplicated the same claim text every time the id recurred, so
+        // skip ids already recorded this session.
+        const existingIds = new Set(s.claims.map((c) => c.claimId));
+        const seenThisTurn = new Set<string>();
+        const newClaims: ArgumentClaim[] = response.claimsCreated
+          .filter((cId: string) => {
+            if (existingIds.has(cId) || seenThisTurn.has(cId)) return false;
+            seenThisTurn.add(cId);
+            return true;
+          })
+          .map((cId: string) => ({
+            claimId: cId,
+            speakerId: agent.id,
+            speakerName: agent.name,
+            claimText: response.message,
+            supports: [],
+            attackedBy: response.claimsAttacked || [],
+            status: 'proposed',
+          }));
 
-      this.updateState((s) => ({ ...s, claims: [...s.claims, ...newClaims] }));
+        return newClaims.length ? { ...s, claims: [...s.claims, ...newClaims] } : s;
+      });
     }
   }
 

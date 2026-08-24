@@ -17,7 +17,22 @@ export const ModelSelectBox: React.FC<ModelSelectBoxProps> = ({ value, onChange,
   const [isLoadingLive, setIsLoadingLive] = useState(false);
   const [isCustomMode, setIsCustomMode] = useState(false);
   const [customInput, setCustomInput] = useState(value);
+  // Null until the live OpenRouter catalog has loaded once. The curated
+  // list above is hand-maintained and can drift out of date (ids get
+  // renamed or retired upstream); once we know which ids OpenRouter
+  // actually serves, hide the ones that would just fail on selection.
+  const [liveModelIds, setLiveModelIds] = useState<Set<string> | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchLiveOpenRouterModels().then((live) => {
+      if (!cancelled) setLiveModelIds(new Set(live.map((m) => m.id)));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const isLight = settings.theme !== 'dark';
   const currentMeta = getModelMeta(value);
@@ -42,9 +57,13 @@ export const ModelSelectBox: React.FC<ModelSelectBoxProps> = ({ value, onChange,
 
   const filteredModels = modelsList.filter(
     (m) =>
-      m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      m.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      m.provider.toLowerCase().includes(searchQuery.toLowerCase())
+      // Once the live catalog is known, drop curated entries OpenRouter no
+      // longer serves; keep everything until then so the list isn't empty
+      // while loading (and stays intact if the live fetch fails).
+      (!liveModelIds || liveModelIds.has(m.id)) &&
+      (m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        m.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        m.provider.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const handleSelectModel = (modelId: string) => {

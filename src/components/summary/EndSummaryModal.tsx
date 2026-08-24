@@ -30,6 +30,13 @@ export const EndSummaryModal: React.FC<EndSummaryModalProps> = ({ isOpen, onClos
   // Find most changed position
   const mostChanged = [...stanceDeltas].sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))[0];
 
+  // Sessions saved before claim ids were deduped on write can still contain
+  // repeats of the same claim; drop those here too so old exports/reports
+  // don't show the same statement multiple times.
+  const uniqueClaims = Array.from(
+    new Map(session.claims.map((c) => [c.claimId, c])).values()
+  );
+
   // Export Generators
   const generateExportText = (format: 'txt' | 'md' | 'json') => {
     if (format === 'json') {
@@ -37,7 +44,7 @@ export const EndSummaryModal: React.FC<EndSummaryModalProps> = ({ isOpen, onClos
         topic: settings.topic,
         settings,
         messages: session.messages,
-        claims: session.claims,
+        claims: uniqueClaims,
         memories: session.memories,
         decisionLogs: session.decisionLogs,
         stanceHistory: session.stanceHistory,
@@ -209,10 +216,10 @@ export const EndSummaryModal: React.FC<EndSummaryModalProps> = ({ isOpen, onClos
               />
             </h3>
             <div className="space-y-1.5">
-              {session.claims.length === 0 ? (
+              {uniqueClaims.length === 0 ? (
                 <p className="text-slate-400 italic">추출된 주장이 없습니다.</p>
               ) : (
-                session.claims.slice(0, 5).map((c, idx) => (
+                uniqueClaims.slice(0, 5).map((c, idx) => (
                   <div
                     key={idx}
                     className={`p-2.5 rounded-lg border text-sm ${

@@ -264,7 +264,7 @@ export interface DebateDecisionLog {
   turn: number;
   actorId: string;
   actorName: string;
-  category: 'speaker_selection' | 'moderation' | 'argument' | 'stance_change' | 'consensus';
+  category: 'speaker_selection' | 'moderation' | 'argument' | 'stance_change' | 'consensus' | 'model_fallback';
   summary: string;
   rationale?: string;
   evidence: string[];

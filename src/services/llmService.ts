@@ -29,6 +29,7 @@ export interface LLMResponseResult {
   stanceReason?: string;
   tokensUsed?: number;
   latencyMs?: number;
+  usedFallbackModel?: string;
 }
 
 class StructuredResponseParseError extends Error {
@@ -104,6 +105,18 @@ async function humanTypeReveal(
   onChunk(fullText);
 }
 
+// Well-known, always-available OpenRouter model used as a last-resort
+// stand-in for a single turn when a panel's configured model keeps returning
+// an empty completion (common with reasoning models that spend their whole
+// token budget on hidden reasoning). Only ever swapped in for one call so a
+// single misbehaving model doesn't pause the entire debate.
+const EMPTY_RESPONSE_FALLBACK_MODEL = 'openai/gpt-4o-mini';
+const MODEL_SWITCHABLE_PROVIDERS: DebateSettings['apiProvider'][] = ['openrouter', 'custom_openai', 'openai'];
+
+function isEmptyResponseError(error: unknown): boolean {
+  return error instanceof Error && error.message.includes('빈 응답을 반환했습니다');
+}
+
 export async function callLLMProvider(
   options: LLMRequestOptions
 ): Promise<LLMResponseResult> {
@@ -114,12 +127,21 @@ export async function callLLMProvider(
     throw new Error('API 키가 설정되지 않았습니다. 기본 설정 탭에서 API 키를 입력해주세요.');
   }
 
+  const originalModel = options.agentOverrideModel || options.settings.globalModel;
+  const canSwitchModel =
+    MODEL_SWITCHABLE_PROVIDERS.includes(options.settings.apiProvider) &&
+    originalModel !== EMPTY_RESPONSE_FALLBACK_MODEL;
+
   let accumulatedTokensUsed = 0;
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    const retrying = attempt === 1;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const retrying = attempt > 0;
+    // Last attempt: if the model keeps returning nothing, swap it out for a
+    // known-good default rather than giving up on the whole turn.
+    const switchModel = attempt === 2 && canSwitchModel;
     const requestOptions: LLMRequestOptions = retrying
       ? {
           ...options,
+          agentOverrideModel: switchModel ? EMPTY_RESPONSE_FALLBACK_MODEL : options.agentOverrideModel,
           settings: {
             ...options.settings,
             maxResponseTokens: Math.max(options.settings.maxResponseTokens || 0, 1200),
@@ -144,10 +166,12 @@ export async function callLLMProvider(
 
       const latencyMs = Date.now() - startTime;
       accumulatedTokensUsed += Math.round(rawResponseText.length / 4);
-      return parseLLMStructuredResponse(rawResponseText, accumulatedTokensUsed, latencyMs);
+      const parsed = parseLLMStructuredResponse(rawResponseText, accumulatedTokensUsed, latencyMs);
+      return switchModel ? { ...parsed, usedFallbackModel: EMPTY_RESPONSE_FALLBACK_MODEL } : parsed;
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') throw error;
-      if (error instanceof StructuredResponseParseError && !retrying) {
+      const retryable = error instanceof StructuredResponseParseError || isEmptyResponseError(error);
+      if (retryable && attempt < 2) {
         options.onChunk('');
         continue;
       }
@@ -195,7 +219,16 @@ async function callOpenAICompatibleAPI(options: LLMRequestOptions): Promise<stri
       temperature: 0.7,
       max_tokens: settings.maxResponseTokens || undefined,
       stream: true,
-      ...(settings.apiProvider === 'openrouter' ? { response_format: { type: 'json_object' } } : {}),
+      ...(settings.apiProvider === 'openrouter'
+        ? {
+            response_format: { type: 'json_object' },
+            // Reasoning models can burn their entire max_tokens budget on
+            // hidden reasoning and never emit the visible answer. Cap the
+            // reasoning budget so at least half of max_tokens stays
+            // reserved for the actual completion.
+            reasoning: { max_tokens: Math.max(400, Math.round((settings.maxResponseTokens || 1000) * 0.5)) },
+          }
+        : {}),
     }),
     signal: options.signal,
   });
@@ -208,6 +241,12 @@ async function callOpenAICompatibleAPI(options: LLMRequestOptions): Promise<stri
   const reader = res.body?.getReader();
   const decoder = new TextDecoder();
   let fullText = '';
+  // Some reasoning models (e.g. DeepSeek's reasoning tiers via OpenRouter)
+  // stream their output entirely through delta.reasoning /
+  // delta.reasoning_content and leave delta.content empty. Track it
+  // separately so it can stand in for the visible message if content never
+  // arrives, instead of surfacing a hard "empty response" failure.
+  let reasoningText = '';
   // SSE lines can be split across separate reader.read() chunks at arbitrary
   // byte boundaries - buffer any trailing partial line instead of discarding it.
   let lineBuffer = '';
@@ -222,11 +261,14 @@ async function callOpenAICompatibleAPI(options: LLMRequestOptions): Promise<stri
         streamError = json.error.message || 'OpenRouter 스트리밍 오류';
         return;
       }
-      const content = json.choices?.[0]?.delta?.content || '';
+      const delta = json.choices?.[0]?.delta;
+      const content = delta?.content || '';
       if (content) {
         fullText += content;
         onChunk(fullText);
       }
+      const reasoning = delta?.reasoning || delta?.reasoning_content || '';
+      if (reasoning) reasoningText += reasoning;
     } catch {
       // Ignore malformed non-data events; incomplete lines remain buffered.
     }
@@ -252,7 +294,11 @@ async function callOpenAICompatibleAPI(options: LLMRequestOptions): Promise<stri
   if (streamError) throw new Error(streamError);
 
   if (!fullText.trim()) {
-    throw new Error('OpenRouter가 빈 응답을 반환했습니다. 모델 설정이나 사용 한도를 확인해주세요.');
+    if (reasoningText.trim()) {
+      fullText = reasoningText.trim();
+    } else {
+      throw new Error('OpenRouter가 빈 응답을 반환했습니다. 모델 설정이나 사용 한도를 확인해주세요.');
+    }
   }
 
   return fullText;
