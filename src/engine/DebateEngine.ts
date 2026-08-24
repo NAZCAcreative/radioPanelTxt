@@ -14,6 +14,7 @@ import type {
   Moderator,
 } from '../types/debate';
 import { getCharacterStyle, getFunDebateMode } from '../utils/funModes';
+import { NATURAL_KOREAN_STYLE_RULES } from '../utils/naturalKoreanRules';
 
 // Varied "thinking" indicator phrases so the live typing card doesn't feel
 // robotic/repetitive - picked once per turn and held stable in session state.
@@ -568,6 +569,7 @@ YOUR RESPONSIBILITIES:
 5. Choose the next panel when useful. Output JSON with public_message, action, next_speaker_id, rationale, and evidence.
 6. rationale must be a concise, user-visible decision basis, not hidden chain-of-thought. evidence is a list of claims or message IDs used.
 7. Your tone is not fixed to polite and gentle by default - match CHALLENGE INTENSITY and NEUTRALITY above. At high challenge/low neutrality, interrupt more, press evasive answers hard, and openly call out weak logic; at low challenge/high neutrality, stay measured and even-handed. Let the room's actual mood set your tone, not a generic host persona.
+8. ${NATURAL_KOREAN_STYLE_RULES}
     `.trim();
   }
 
@@ -624,7 +626,8 @@ STRICT BEHAVIORAL RULES:
 7. Challenge intensity is ${this.settings.challengeMode}/100 and perspective diversity pressure is ${this.settings.diversityPressure}/100.
 8. ${this.settings.antiSycophancyGlobal ? 'Independently evaluate every claim.' : 'You may converge when the discussion supports it.'}
 9. ${this.settings.perspectivePreservationGlobal ? 'Preserve your distinct expert perspective unless strong evidence changes it.' : 'Natural convergence is allowed.'}
-10. Return your response as JSON in the format:
+10. ${NATURAL_KOREAN_STYLE_RULES}
+11. Return your response as JSON in the format:
 {
   "message": "Visible chat message text in Korean",
   "stance": -100 to +100 stance integer,

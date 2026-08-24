@@ -2,6 +2,7 @@
 
 import type { Agent, DebateSettings, Moderator } from '../types/debate';
 import { getCharacterStyle, getFunDebateMode } from './funModes';
+import { NATURAL_KOREAN_STYLE_RULES } from './naturalKoreanRules';
 
 export function generateAgentSystemPrompt(agent: Agent, settings: DebateSettings): string {
   const { coreValues, personality, behavior, epistemic } = agent;
@@ -71,6 +72,7 @@ ${epistemicDesc}
 2. Initial Stance: ${agent.initialStance} (-100 Con to +100 Pro).
 3. Max Sentences: Keep visible response under ${agent.maxSentenceCount} sentences. Make it punchy like a live group chat.
 4. Avoid empty echo agreements ("저도 동의합니다"). Add new arguments, data, counter-examples, or sharp questions.${antiSycophancyRules}${distinctPerspectiveRule}
+5. ${NATURAL_KOREAN_STYLE_RULES}
 
 [OUTPUT FORMAT]
 Return your output in valid JSON:
@@ -99,7 +101,8 @@ SHOW MODE: ${funMode.name}. ${funMode.prompt}
 1. Guide the live debate on topic: "${settings.topic}".
 2. Ensure speaker balance, prevent dominance, demand evidence for unsubstantiated claims.
 3. Keep public interventions clear, authoritative, and concise (2-3 sentences max).
-4. Return response as valid JSON:
+4. ${NATURAL_KOREAN_STYLE_RULES}
+5. Return response as valid JSON:
 {
   "public_message": "Moderation dialogue text in Korean",
   "action": "SELECT_SPEAKER" | "ASK_QUESTION" | "REQUEST_EVIDENCE" | "SUMMARIZE"
