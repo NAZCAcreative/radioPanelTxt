@@ -2,6 +2,7 @@ import React from 'react';
 import { X, FileText, Code, TrendingUp, Sparkles } from 'lucide-react';
 import { useDebateStore } from '../../store/useDebateStore';
 import { HelpTooltip } from '../common/HelpTooltip';
+import { ClaimGraph } from './ClaimGraph';
 
 interface EndSummaryModalProps {
   isOpen: boolean;
@@ -37,6 +38,12 @@ export const EndSummaryModal: React.FC<EndSummaryModalProps> = ({ isOpen, onClos
     new Map(session.claims.map((c) => [c.claimId, c])).values()
   );
 
+  const reflectionEntries = Object.entries(session.reflections)
+    .flatMap(([agentId, entries]) =>
+      entries.map((r) => ({ ...r, agentName: settings.agents.find((a) => a.id === agentId)?.name || agentId }))
+    )
+    .sort((a, b) => a.turn - b.turn);
+
   // Export Generators
   const generateExportText = (format: 'txt' | 'md' | 'json') => {
     if (format === 'json') {
@@ -48,6 +55,7 @@ export const EndSummaryModal: React.FC<EndSummaryModalProps> = ({ isOpen, onClos
         memories: session.memories,
         decisionLogs: session.decisionLogs,
         stanceHistory: session.stanceHistory,
+        reflections: reflectionEntries,
         consensusSnapshots: session.consensusSnapshots,
         finalStances: stanceDeltas,
       };
@@ -234,6 +242,18 @@ export const EndSummaryModal: React.FC<EndSummaryModalProps> = ({ isOpen, onClos
             </div>
           </div>
 
+          {/* Claim / Attack Relationship Graph */}
+          <div className="space-y-2">
+            <h3 className="font-bold text-sm flex items-center gap-1.5">
+              <span>주장 관계도</span>
+              <HelpTooltip
+                title="주장 관계도"
+                description="참가자별로 제시한 주장(카드)과, 어떤 주장이 다른 주장을 반박했는지(화살표)를 한눈에 보여줍니다. 테두리 색은 주장의 현재 상태(반박받음·뒷받침됨 등)를 나타냅니다."
+              />
+            </h3>
+            <ClaimGraph claims={uniqueClaims} agents={settings.agents} isLight={isLight} />
+          </div>
+
           <div className="space-y-2">
             <h3 className="font-bold text-sm">합의 판정</h3>
             {session.consensusSnapshots.length ? (() => {
@@ -263,6 +283,25 @@ export const EndSummaryModal: React.FC<EndSummaryModalProps> = ({ isOpen, onClos
                 {item.previousStance} → {item.newStance} · {item.reason}
               </div>
             )) : <p className="text-slate-400 italic">기록된 입장 변화가 없습니다.</p>}
+          </div>
+
+          <div className="space-y-2">
+            <h3 className="font-bold text-sm flex items-center gap-1.5">
+              <span>패널 성찰 기록</span>
+              <HelpTooltip
+                title="패널 성찰 기록"
+                description="설정된 주기(성찰 간격)마다 각 참가자가 스스로 점검한 현재 입장, 가장 강력한 반대 논거, 아직 풀리지 않은 질문, 다음 전략을 모아 보여줍니다."
+              />
+            </h3>
+            {reflectionEntries.length ? reflectionEntries.map((r, index) => (
+              <div key={`${r.agentId}_${r.turn}_${index}`} className={`p-2.5 rounded-lg border space-y-1 text-sm ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-gray-950 border-gray-800'}`}>
+                <div className="font-bold">턴 {r.turn} · {r.agentName}</div>
+                {r.currentPosition && <div><span className="text-slate-500">현재 입장: </span>{r.currentPosition}</div>}
+                {r.strongestOpposingArgument && <div><span className="text-slate-500">가장 강한 반론: </span>{r.strongestOpposingArgument}</div>}
+                {r.unresolvedQuestion && <div><span className="text-slate-500">미해결 질문: </span>{r.unresolvedQuestion}</div>}
+                {r.nextStrategy && <div><span className="text-slate-500">다음 전략: </span>{r.nextStrategy}</div>}
+              </div>
+            )) : <p className="text-slate-400 italic">아직 성찰 기록이 없습니다.</p>}
           </div>
 
           <div className="space-y-2">

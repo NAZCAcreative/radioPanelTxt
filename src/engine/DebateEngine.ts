@@ -634,8 +634,10 @@ STRICT BEHAVIORAL RULES:
   "stance_reason": "why the stance changed or stayed stable",
   "claims_created": ["stable claim id"],
   "claims_attacked": ["claim id being challenged"],
-  "memory_candidates": [{"summary":"important reusable point","importance":0.0 to 1.0}]
+  "memory_candidates": [{"summary":"important reusable point","importance":0.0 to 1.0}],
+  "reflection": {"current_position":"...","strongest_opposing_argument":"...","unresolved_question":"...","next_strategy":"..."}
 }
+Only include "reflection" on a REFLECTION TURN (see below); omit it entirely otherwise.
     `.trim();
   }
 
@@ -667,7 +669,7 @@ STRICT BEHAVIORAL RULES:
       ? this.state.factLedger.map((f) => `[${f.status}] ${f.factText}${f.source ? ` (${f.source})` : ''}`).join('\n')
       : '';
     const reflectionInstruction = this.settings.reflectionIntervalTurns > 0 && turn % this.settings.reflectionIntervalTurns === 0
-      ? 'REFLECTION TURN: Identify the strongest opposing argument and one unresolved question before giving your position.'
+      ? 'REFLECTION TURN: Before responding, fill the "reflection" field with your current_position, the strongest_opposing_argument you have heard so far, one unresolved_question, and your next_strategy.'
       : '';
     const audienceInstruction = audienceQuestion
       ? `AUDIENCE MESSAGE: "${audienceQuestion.userText}". Address it directly as a panelist without handing it to a moderator.`
@@ -716,7 +718,9 @@ Please respond as ${agent.name} adhering to JSON format.
       this.updateState((s) => ({ ...s, memories: [...s.memories, ...newMemories] }));
     }
 
-    if (response.claimsCreated && response.claimsCreated.length > 0) {
+    const claimsCreated: string[] = response.claimsCreated || [];
+    const claimsAttacked: string[] = response.claimsAttacked || [];
+    if (claimsCreated.length > 0 || claimsAttacked.length > 0) {
       this.updateState((s) => {
         // Panels are instructed to reuse a "stable claim id" when they
         // return to a point they already raised. Appending unconditionally
@@ -724,24 +728,72 @@ Please respond as ${agent.name} adhering to JSON format.
         // skip ids already recorded this session.
         const existingIds = new Set(s.claims.map((c) => c.claimId));
         const seenThisTurn = new Set<string>();
-        const newClaims: ArgumentClaim[] = response.claimsCreated
-          .filter((cId: string) => {
-            if (existingIds.has(cId) || seenThisTurn.has(cId)) return false;
-            seenThisTurn.add(cId);
-            return true;
-          })
-          .map((cId: string) => ({
+        const newIds = claimsCreated.filter((cId) => {
+          if (existingIds.has(cId) || seenThisTurn.has(cId)) return false;
+          seenThisTurn.add(cId);
+          return true;
+        });
+
+        // An attack needs a claim to originate from. Reuse this turn's new
+        // claim id if there is one; otherwise synthesize one from the
+        // rebuttal itself so attacks made without proposing a fresh claim
+        // (a pure rebuttal) still have a source node in the argument graph.
+        const attackSourceId = newIds[0] || (claimsAttacked.length ? `implicit_${agent.id}_t${turn}` : undefined);
+        const needsImplicitSource = newIds.length === 0 && !!attackSourceId;
+
+        const newClaims: ArgumentClaim[] = [
+          ...newIds.map((cId) => ({
             claimId: cId,
             speakerId: agent.id,
             speakerName: agent.name,
             claimText: response.message,
             supports: [],
-            attackedBy: response.claimsAttacked || [],
-            status: 'proposed',
-          }));
+            attackedBy: [],
+            status: 'proposed' as const,
+          })),
+          ...(needsImplicitSource ? [{
+            claimId: attackSourceId!,
+            speakerId: agent.id,
+            speakerName: agent.name,
+            claimText: response.message,
+            supports: [],
+            attackedBy: [],
+            status: 'proposed' as const,
+          }] : []),
+        ];
 
-        return newClaims.length ? { ...s, claims: [...s.claims, ...newClaims] } : s;
+        let claims = newClaims.length ? [...s.claims, ...newClaims] : s.claims;
+        if (attackSourceId && claimsAttacked.length) {
+          claims = claims.map((c) =>
+            claimsAttacked.includes(c.claimId) && c.claimId !== attackSourceId && !c.attackedBy.includes(attackSourceId)
+              ? { ...c, attackedBy: [...c.attackedBy, attackSourceId], status: 'contested' as const }
+              : c
+          );
+        }
+
+        return claims === s.claims ? s : { ...s, claims };
       });
+    }
+
+    if (response.reflection) {
+      const reflection = response.reflection;
+      this.updateState((s) => ({
+        ...s,
+        reflections: {
+          ...s.reflections,
+          [agent.id]: [
+            ...(s.reflections[agent.id] || []),
+            {
+              agentId: agent.id,
+              turn,
+              currentPosition: reflection.currentPosition,
+              strongestOpposingArgument: reflection.strongestOpposingArgument,
+              unresolvedQuestion: reflection.unresolvedQuestion,
+              nextStrategy: reflection.nextStrategy,
+            },
+          ],
+        },
+      }));
     }
   }
 

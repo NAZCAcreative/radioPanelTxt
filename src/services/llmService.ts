@@ -30,6 +30,12 @@ export interface LLMResponseResult {
   tokensUsed?: number;
   latencyMs?: number;
   usedFallbackModel?: string;
+  reflection?: {
+    currentPosition: string;
+    strongestOpposingArgument: string;
+    unresolvedQuestion: string;
+    nextStrategy: string;
+  };
 }
 
 class StructuredResponseParseError extends Error {
@@ -443,6 +449,21 @@ export function parseLLMStructuredResponse(
           return [{ summary: candidate.summary.trim(), importance: Math.max(0, Math.min(1, importance)) }];
         }).slice(0, 10)
       : [];
+    const reflectionRaw = parsed.reflection && typeof parsed.reflection === 'object'
+      ? parsed.reflection as Record<string, unknown>
+      : undefined;
+    const reflectionField = (key: string) => {
+      const value = reflectionRaw?.[key];
+      return typeof value === 'string' ? value.trim() : '';
+    };
+    const reflection = reflectionRaw
+      ? {
+          currentPosition: reflectionField('current_position'),
+          strongestOpposingArgument: reflectionField('strongest_opposing_argument'),
+          unresolvedQuestion: reflectionField('unresolved_question'),
+          nextStrategy: reflectionField('next_strategy'),
+        }
+      : undefined;
     return {
       message,
       stance: typeof parsed.stance === 'number' ? Math.max(-100, Math.min(100, Math.round(parsed.stance))) : undefined,
@@ -458,6 +479,7 @@ export function parseLLMStructuredResponse(
       rationale: typeof parsed.rationale === 'string' ? parsed.rationale.trim() : undefined,
       evidence: stringArray(parsed.evidence),
       stanceReason: typeof parsed.stance_reason === 'string' ? parsed.stance_reason.trim() : undefined,
+      reflection: reflection && Object.values(reflection).some(Boolean) ? reflection : undefined,
       tokensUsed,
       latencyMs,
     };
