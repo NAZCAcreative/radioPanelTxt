@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { X, Link2, Loader2, AlertTriangle, ExternalLink } from 'lucide-react';
 import { useDebateStore } from '../../store/useDebateStore';
 import { listMyDebates, type MyDebateSummary } from '../../utils/shareDebate';
+import { hashApiKey, nicknameFromKeyHash } from '../../utils/anonymousIdentity';
 
 interface MyDebatesModalProps {
   isOpen: boolean;
@@ -19,14 +20,21 @@ export const MyDebatesModal: React.FC<MyDebatesModalProps> = ({ isOpen, onClose 
   const [state, setState] = useState<
     { status: 'idle' } | { status: 'loading' } | { status: 'done'; items: MyDebateSummary[] } | { status: 'error'; message: string }
   >({ status: 'idle' });
+  // Computed live from the currently-entered API key via the exact same
+  // hash+nickname function used when a share is created, so what's shown
+  // here always matches the owner_name actually stored on this key's rows
+  // - if the key changes, the nickname (and the list below) changes too.
+  const [nickname, setNickname] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
     if (!settings.apiKey.trim()) {
       setState({ status: 'idle' });
+      setNickname(null);
       return;
     }
     setState({ status: 'loading' });
+    hashApiKey(settings.apiKey).then((hash) => setNickname(nicknameFromKeyHash(hash)));
     listMyDebates(settings.apiKey)
       .then((items) => setState({ status: 'done', items }))
       .catch((err) => setState({ status: 'error', message: err instanceof Error ? err.message : String(err) }));
@@ -52,6 +60,11 @@ export const MyDebatesModal: React.FC<MyDebatesModalProps> = ({ isOpen, onClose 
           <h2 className={`text-lg font-bold flex items-center gap-2 ${isLight ? 'text-slate-900' : 'text-white'}`}>
             <Link2 className="w-4 h-4 text-indigo-600" />
             <span>내가 공유한 토론</span>
+            {nickname && (
+              <span className="text-[13px] font-mono font-normal px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                {nickname}
+              </span>
+            )}
           </h2>
           <button
             onClick={onClose}
