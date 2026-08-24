@@ -29,7 +29,7 @@ import { saveAgentPreset } from '../../utils/agentPresetArchive';
 import { exportAgentAsJson, exportAgentPromptAsText } from '../../utils/agentExport';
 import { deleteSavedTopic, listSavedTopics, saveTopic } from '../../utils/topicArchive';
 import { NO_ANSWER_TOPICS } from '../../utils/noAnswerTopics';
-import { CHAT_CHARACTER_STYLES, FUN_DEBATE_MODES, getFunDebateMode, pickModelForCharacter } from '../../utils/funModes';
+import { CHAT_CHARACTER_STYLES, FUN_DEBATE_MODES, getFunDebateMode, MODERATOR_TONE_STYLES, pickModelForCharacter } from '../../utils/funModes';
 
 export const BasicTab: React.FC = () => {
   const {
@@ -40,6 +40,7 @@ export const BasicTab: React.FC = () => {
     removeAgent,
     generateRandomPersonasForTopic,
     applyFunMode,
+    applyModeratorTone,
     startDebate,
     pauseDebate,
     resumeDebate,
@@ -675,7 +676,28 @@ export const BasicTab: React.FC = () => {
           />
         </div>
 
-        {/* 2. Moderator Name */}
+        {/* 2. Moderator Tone/Disposition Preset */}
+        <div>
+          <label className={`block text-[14px] font-semibold mb-1 ${isLight ? 'text-slate-600' : 'text-gray-400'}`}>
+            사회자 성향 선택
+          </label>
+          <select
+            value={settings.moderator.toneStyle || 'balanced'}
+            onChange={(e) => applyModeratorTone(e.target.value)}
+            className={`w-full border rounded-lg px-3 py-2 text-sm font-bold ${
+              isLight ? 'bg-purple-50 border-purple-300 text-slate-900' : 'bg-gray-950 border-purple-800 text-gray-100'
+            }`}
+          >
+            {MODERATOR_TONE_STYLES.map((tone) => (
+              <option key={tone.id} value={tone.id}>{tone.emoji} {tone.name} — {tone.description}</option>
+            ))}
+          </select>
+          <p className={`text-[13px] mt-1 ${isLight ? 'text-slate-400' : 'text-gray-500'}`}>
+            성향을 고르면 아래 Persona·중립성·개입 빈도가 즉시 바뀝니다. 이후 자유롭게 직접 수정할 수 있습니다.
+          </p>
+        </div>
+
+        {/* 3. Moderator Name */}
         <div>
           <label className={`block text-[14px] font-semibold mb-1 ${isLight ? 'text-slate-600' : 'text-gray-400'}`}>
             사회자 이름

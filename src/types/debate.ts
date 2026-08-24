@@ -168,6 +168,7 @@ export interface Moderator {
   customModel?: string; // Per-moderator model override
   neutrality: number; // 0 (active viewpoint) to 100 (complete neutrality), default 85
   interventionFrequency: number; // 0 (min) to 100 (max intervention)
+  toneStyle?: string; // last-applied MODERATOR_TONE_STYLES id, drives the settings UI select
   
   // Moderator Behaviors
   behaviors: {

@@ -256,10 +256,107 @@ export function randomizeModerator(moderator: Moderator, modeId?: string): Moder
   const flavor = FUN_MODE_MODERATOR_FLAVORS[modeId || 'standard'] || FUN_MODE_MODERATOR_FLAVORS.standard;
   return {
     ...moderator,
+    // The show mode's flavor is a starting point, not one of the explicit
+    // tone presets below - clear the tone select so it doesn't keep
+    // claiming a match that no longer holds. "standard" is the one
+    // exception: its flavor is exactly the "balanced" preset.
+    toneStyle: (modeId || 'standard') === 'standard' ? 'balanced' : undefined,
     persona: flavor.persona,
     speakingStyle: flavor.speakingStyle,
     neutrality: randomInRange(flavor.neutrality[0], flavor.neutrality[1]),
     interventionFrequency: randomInRange(flavor.interventionFrequency[0], flavor.interventionFrequency[1]),
+  };
+}
+
+export interface ModeratorToneStyle {
+  id: string;
+  emoji: string;
+  name: string;
+  description: string;
+  persona: string;
+  speakingStyle: string;
+  neutrality: number;
+  interventionFrequency: number;
+}
+
+// A direct, explicit choice for the moderator's disposition - independent of
+// which show mode is picked, so a serious "standard" debate isn't stuck
+// with one fixed gentle-facilitator tone either. Picking one of these fills
+// in persona/speaking style/neutrality/intervention immediately; the text
+// stays freely editable afterward.
+export const MODERATOR_TONE_STYLES: ModeratorToneStyle[] = [
+  {
+    id: 'balanced',
+    emoji: '⚖️',
+    name: '균형잡힌 진행자',
+    description: '공정하게 발언 기회를 배분하고 예의를 지키는 기본형',
+    persona: DEFAULT_MODERATOR.persona,
+    speakingStyle: DEFAULT_MODERATOR.speakingStyle,
+    neutrality: 85,
+    interventionFrequency: 60,
+  },
+  {
+    id: 'sharp_interrogator',
+    emoji: '🔦',
+    name: '날카로운 심문관',
+    description: '근거 없는 주장을 절대 봐주지 않고 직접적으로 캐묻는다',
+    persona: '근거 없는 주장은 절대 넘어가지 않는 심문관 스타일. 애매한 답변은 바로 다시 캐묻는다.',
+    speakingStyle: '짧고 날카로운 질문 위주. "그 근거가 뭡니까?", "지금 답변을 피하신 것 같은데요?" 식으로 직접적으로 파고든다.',
+    neutrality: 45,
+    interventionFrequency: 85,
+  },
+  {
+    id: 'strict_judge',
+    emoji: '🧑‍⚖️',
+    name: '엄격한 심판',
+    description: '절차와 규칙을 철저히 지키는 근엄한 진행, 봐주는 것 없이 공정하다',
+    persona: '절차와 형평성을 최우선으로 하는 근엄한 심판. 규칙 위반이나 시간 초과는 즉시 제지한다.',
+    speakingStyle: '격식 있고 단호한 어조. "규칙에 따라 다음 발언자를 지정합니다" 식의 판결조로 말한다.',
+    neutrality: 90,
+    interventionFrequency: 75,
+  },
+  {
+    id: 'provocateur',
+    emoji: '🔥',
+    name: '부추기는 선동가',
+    description: '일부러 긴장감을 조성하고 대립을 부추겨 토론을 더 뜨겁게 만든다',
+    persona: '갈등을 즐기는 선동가 기질. 애매한 봉합보다 확실한 정면 충돌을 유도한다.',
+    speakingStyle: '도발적인 질문과 자극적인 요약을 즐긴다. "그럼 두 분은 정면으로 부딪히는 거네요?" 식으로 몰아붙인다.',
+    neutrality: 30,
+    interventionFrequency: 80,
+  },
+  {
+    id: 'laid_back_observer',
+    emoji: '🌿',
+    name: '여유로운 관찰자',
+    description: '개입을 최소화하고 토론이 스스로 흘러가게 둔다',
+    persona: '패널들을 믿고 지켜보는 여유로운 관찰자. 꼭 필요한 순간에만 짧게 개입한다.',
+    speakingStyle: '느긋하고 간결한 어조. 개입할 땐 한두 문장으로 핵심만 짚는다.',
+    neutrality: 80,
+    interventionFrequency: 25,
+  },
+  {
+    id: 'hype_mc',
+    emoji: '🎉',
+    name: '유쾌한 분위기 메이커',
+    description: '텐션을 끌어올리고 재치있게 진행하되 핵심 질문은 놓치지 않는다',
+    persona: '텐션 높은 예능 MC 기질. 웃음을 만들면서도 핵심 질문으로 능숙하게 되돌린다.',
+    speakingStyle: '과장된 리액션과 재치있는 진행 멘트. "오, 여기서 반전이 나오나요?" 식으로 텐션을 유지한다.',
+    neutrality: 65,
+    interventionFrequency: 75,
+  },
+];
+
+export function applyModeratorToneStyle(moderator: Moderator, toneId: string): Moderator {
+  const tone = MODERATOR_TONE_STYLES.find((t) => t.id === toneId);
+  if (!tone) return moderator;
+  return {
+    ...moderator,
+    toneStyle: tone.id,
+    persona: tone.persona,
+    speakingStyle: tone.speakingStyle,
+    neutrality: tone.neutrality,
+    interventionFrequency: tone.interventionFrequency,
   };
 }
 

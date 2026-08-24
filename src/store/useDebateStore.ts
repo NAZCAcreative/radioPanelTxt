@@ -18,7 +18,7 @@ import {
 } from '../utils/presets';
 import { loadSavedSettings, syncSettingsPersistence } from '../utils/settingsStorage';
 import { normalizeOpenRouterModelId } from '../utils/modelData';
-import { randomizeAgentCharacters, randomizeModerator } from '../utils/funModes';
+import { applyModeratorToneStyle, randomizeAgentCharacters, randomizeModerator } from '../utils/funModes';
 
 // If the user previously opted into browser-local storage, this holds the
 // entire saved workspace (topic, agents, moderator, every policy slider,
@@ -160,6 +160,7 @@ interface DebateStore {
   removeAgent: (agentId: string) => void;
   generateRandomPersonasForTopic: () => void;
   applyFunMode: (modeId: string) => void;
+  applyModeratorTone: (toneId: string) => void;
   applyDebatePreset: (presetId: string) => void;
   toggleDebugMode: () => void;
   toggleTheme: () => void;
@@ -304,6 +305,18 @@ export const useDebateStore = create<DebateStore>((set, get) => {
           modeId === 'standard' ? state.settings.agents : randomizeAgentCharacters(state.settings.agents, modeId);
         const newModerator = randomizeModerator(state.settings.moderator, modeId);
         const newSettings = { ...state.settings, funDebateModeId: modeId, agents: newAgents, moderator: newModerator };
+        if (engineInstance) engineInstance.setSettings(newSettings);
+        return { settings: newSettings };
+      });
+    },
+
+    // Explicit, independent choice for the moderator's disposition - unlike
+    // applyFunMode above, this only touches the moderator and works the same
+    // way regardless of which show mode is active.
+    applyModeratorTone: (toneId) => {
+      set((state) => {
+        const newModerator = applyModeratorToneStyle(state.settings.moderator, toneId);
+        const newSettings = { ...state.settings, moderator: newModerator };
         if (engineInstance) engineInstance.setSettings(newSettings);
         return { settings: newSettings };
       });

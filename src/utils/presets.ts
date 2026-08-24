@@ -251,6 +251,7 @@ export const DEFAULT_MODERATOR: Moderator = {
   persona: '주제 논점을 명확하게 정돈하고 양측의 발언 시간을 균형 있게 배분함. 근거 없는 주장이나 답변 회피를 주도면밀하게 짚어낸다.',
   speakingStyle: '격식 있고 차분하지만 권위 있는 어조. "개입하겠습니다", "~에 대해 답변 부탁드립니다" 등의 유려한 진행 어휘.',
   customModel: 'anthropic/claude-opus-4.8', // 사회자 기본 모델
+  toneStyle: 'balanced',
   neutrality: 85,
   interventionFrequency: 60,
   behaviors: {
