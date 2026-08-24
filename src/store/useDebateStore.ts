@@ -29,7 +29,7 @@ const DEFAULT_SETTINGS: DebateSettings = {
   apiProvider: 'openrouter',
   apiKey: '',
   keyStorage: 'donotsave',
-  globalModel: 'openai/gpt-5.5-pro',
+  globalModel: 'openai/gpt-5',
   advancedModelPerAgent: false,
   chatPaceMode: 'normal',
   agentModelDefaultsVersion: 2,
