@@ -1,4 +1,5 @@
 import type { Agent, ChatCharacterStyle, Moderator } from '../types/debate';
+import { DEFAULT_MODERATOR } from './presets';
 
 export interface FunDebateMode {
   id: string;
@@ -185,6 +186,16 @@ interface ModeratorFlavor {
 // default, so the host's tone tracks the room instead of always reading calm
 // and gentle.
 const FUN_MODE_MODERATOR_FLAVORS: Record<string, ModeratorFlavor> = {
+  // Picking "standard" is the reset path back to the shipped default
+  // facilitator - without an explicit entry here, a moderator persona typed
+  // for an earlier mode (or topic) would keep sitting there unchanged
+  // forever, which is exactly what testers reported.
+  standard: {
+    persona: DEFAULT_MODERATOR.persona,
+    speakingStyle: DEFAULT_MODERATOR.speakingStyle,
+    neutrality: [DEFAULT_MODERATOR.neutrality, DEFAULT_MODERATOR.neutrality],
+    interventionFrequency: [DEFAULT_MODERATOR.interventionFrequency, DEFAULT_MODERATOR.interventionFrequency],
+  },
   highschool_chat: {
     persona: '반 분위기를 휘어잡는 반장/학생회장 텐션. 편은 안 들지만 늘어지면 바로 끊고 다음 사람을 시킨다.',
     speakingStyle: '반말 섞인 캐주얼한 진행. "야 그거 아니지", "다음 타자 누구?" 같은 급식체 진행 멘트를 쓴다.',
@@ -241,12 +252,8 @@ const FUN_MODE_MODERATOR_FLAVORS: Record<string, ModeratorFlavor> = {
   },
 };
 
-// Switching to "standard" leaves the moderator untouched (mirrors
-// randomizeAgentCharacters below), since standard has no flavor of its own
-// to impose - whatever the user already configured stays put.
 export function randomizeModerator(moderator: Moderator, modeId?: string): Moderator {
-  const flavor = modeId ? FUN_MODE_MODERATOR_FLAVORS[modeId] : undefined;
-  if (!flavor) return moderator;
+  const flavor = FUN_MODE_MODERATOR_FLAVORS[modeId || 'standard'] || FUN_MODE_MODERATOR_FLAVORS.standard;
   return {
     ...moderator,
     persona: flavor.persona,
