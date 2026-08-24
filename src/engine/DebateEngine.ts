@@ -553,8 +553,9 @@ export class DebateEngine {
     return `
 YOU ARE THE DEBATE MODERATOR: ${mod.name} (${mod.role}).
 PERSONA: ${mod.persona}
-NEUTRALITY: ${mod.neutrality}% Neutral.
+NEUTRALITY: ${mod.neutrality}% Neutral (0 = take an active viewpoint, 100 = fully neutral facilitator).
 INTERVENTION FREQUENCY: ${this.settings.moderator.interventionFrequency}%
+CHALLENGE INTENSITY: ${this.settings.challengeMode}/100
 ENABLED ACTIONS: ${enabledBehaviors || 'basic facilitation only'}
 CONSENSUS POLICY: ${this.settings.consensusMode}
 SHOW MODE: ${funMode.name}. ${funMode.prompt}
@@ -566,6 +567,7 @@ YOUR RESPONSIBILITIES:
 4. Keep responses concise (2-3 sentences max).
 5. Choose the next panel when useful. Output JSON with public_message, action, next_speaker_id, rationale, and evidence.
 6. rationale must be a concise, user-visible decision basis, not hidden chain-of-thought. evidence is a list of claims or message IDs used.
+7. Your tone is not fixed to polite and gentle by default - match CHALLENGE INTENSITY and NEUTRALITY above. At high challenge/low neutrality, interrupt more, press evasive answers hard, and openly call out weak logic; at low challenge/high neutrality, stay measured and even-handed. Let the room's actual mood set your tone, not a generic host persona.
     `.trim();
   }
 

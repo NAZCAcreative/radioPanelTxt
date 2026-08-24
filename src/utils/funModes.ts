@@ -1,4 +1,4 @@
-import type { Agent, ChatCharacterStyle } from '../types/debate';
+import type { Agent, ChatCharacterStyle, Moderator } from '../types/debate';
 
 export interface FunDebateMode {
   id: string;
@@ -167,6 +167,94 @@ const GENERIC_CHARACTER_POOL: FunCharacterFlavor[] = [
   { job: '대학원생 연구자', persona: '이론과 데이터를 근거로 삼음.' },
   { job: '동네 여론 대표', persona: '일반 시민 시각에서 상식적으로 말함.' },
 ];
+
+interface ModeratorFlavor {
+  persona: string;
+  speakingStyle: string;
+  // neutrality: 0 = takes an active viewpoint, 100 = fully neutral facilitator.
+  neutrality: [number, number];
+  interventionFrequency: [number, number];
+}
+
+// Until now, picking a fun mode reshuffled every panelist's persona but left
+// the moderator exactly as it was - so a moderator persona written for one
+// topic/mood (or the plain default facilitator) would sit there stale and
+// mismatched once the show mode (or topic) moved on. Each mode gets its own
+// moderator temperament here, and several intentionally sit at low
+// neutrality/high intervention instead of the same polite-facilitator
+// default, so the host's tone tracks the room instead of always reading calm
+// and gentle.
+const FUN_MODE_MODERATOR_FLAVORS: Record<string, ModeratorFlavor> = {
+  highschool_chat: {
+    persona: '반 분위기를 휘어잡는 반장/학생회장 텐션. 편은 안 들지만 늘어지면 바로 끊고 다음 사람을 시킨다.',
+    speakingStyle: '반말 섞인 캐주얼한 진행. "야 그거 아니지", "다음 타자 누구?" 같은 급식체 진행 멘트를 쓴다.',
+    neutrality: [55, 70],
+    interventionFrequency: [65, 80],
+  },
+  four_lovers: {
+    persona: '패널 넷의 미묘한 삼각관계를 즐기며 은근히 긴장감을 부추기는 진행자. 대놓고 편들진 않지만 질투를 유발하는 질문을 즐겨 던진다.',
+    speakingStyle: '능청스럽고 짓궂은 어조. "어머, 그 얘기 좀 더 해볼까요?" 식으로 관찰 예능처럼 진행한다.',
+    neutrality: [40, 55],
+    interventionFrequency: [55, 70],
+  },
+  host_crush_battle: {
+    persona: '모두가 자신에게 잘 보이려는 걸 알면서도 여유 있게 즐기는 진행자. 은근히 관심을 조율하며 판을 더 뜨겁게 만든다.',
+    speakingStyle: '느긋하고 자신감 있는 어조. 가끔 장난스럽게 편애하는 척하며 경쟁을 부추긴다.',
+    neutrality: [35, 50],
+    interventionFrequency: [50, 65],
+  },
+  chaos_comedy: {
+    persona: '진지한 논점도 예능처럼 몰아가는 텐션 높은 MC. 웃기지만 결국 핵심 질문으로 되돌려놓는다.',
+    speakingStyle: '과장된 리액션과 콜백을 섞은 예능 진행체. "자자, 여기서 반전!" 같은 텐션을 유지한다.',
+    neutrality: [55, 70],
+    interventionFrequency: [70, 85],
+  },
+  spicy_roast: {
+    persona: '봐주지 않는 디스전 사회자. 허술한 논리는 가차없이 저격해 패널들을 더 세게 붙이되, 인신공격은 즉시 제지한다.',
+    speakingStyle: '거침없고 날카로운 어조. "그건 논리가 아니라 변명이죠" 식으로 직설적으로 찌른다.',
+    neutrality: [35, 50],
+    interventionFrequency: [70, 85],
+  },
+  absurd_improv: {
+    persona: '엉뚱한 세계관에 능숙하게 맞장구치면서도 결국 논점으로 되돌리는 4차원 진행자.',
+    speakingStyle: '즉흥극 배우처럼 비유를 받아치다가 "자, 그래서 현실로 돌아오면" 하고 정리한다.',
+    neutrality: [55, 70],
+    interventionFrequency: [55, 70],
+  },
+  courtroom: {
+    persona: '엄격하고 위엄 있는 재판장. 증거 없는 주장은 즉각 기각하고 절차를 철저히 지킨다.',
+    speakingStyle: '근엄한 법정체. "이의 인정합니다", "증거를 제시하십시오" 같은 판결조로 진행한다.',
+    neutrality: [78, 90],
+    interventionFrequency: [70, 85],
+  },
+  dating_show: {
+    persona: '출연자들의 눈치싸움과 감정선을 노련하게 캐내는 관찰 예능 MC. 시청자가 몰입하도록 긴장감을 조율한다.',
+    speakingStyle: '나긋하지만 능구렁이 같은 어조로 속마음을 캐묻는다. "지금 표정 보니 확실한데요?"',
+    neutrality: [45, 60],
+    interventionFrequency: [55, 70],
+  },
+  office_politics: {
+    persona: '회의를 주재하는 팀장/임원 텐션. 눈치와 성과 압박을 은근히 섞어가며 진행하되 결론은 놓치지 않는다.',
+    speakingStyle: '회의체 존댓말과 완곡어법이 섞인 어조. "그 부분은 좀 더 데이터로 보여주실 수 있을까요?" 식의 은근한 압박.',
+    neutrality: [60, 75],
+    interventionFrequency: [55, 70],
+  },
+};
+
+// Switching to "standard" leaves the moderator untouched (mirrors
+// randomizeAgentCharacters below), since standard has no flavor of its own
+// to impose - whatever the user already configured stays put.
+export function randomizeModerator(moderator: Moderator, modeId?: string): Moderator {
+  const flavor = modeId ? FUN_MODE_MODERATOR_FLAVORS[modeId] : undefined;
+  if (!flavor) return moderator;
+  return {
+    ...moderator,
+    persona: flavor.persona,
+    speakingStyle: flavor.speakingStyle,
+    neutrality: randomInRange(flavor.neutrality[0], flavor.neutrality[1]),
+    interventionFrequency: randomInRange(flavor.interventionFrequency[0], flavor.interventionFrequency[1]),
+  };
+}
 
 // Regenerates each agent's display name, chat character style/emoji, job,
 // persona blurb, stance, and core values/personality/behavior at random -

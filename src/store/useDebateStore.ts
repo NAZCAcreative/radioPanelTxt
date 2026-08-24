@@ -18,7 +18,7 @@ import {
 } from '../utils/presets';
 import { loadSavedSettings, syncSettingsPersistence } from '../utils/settingsStorage';
 import { normalizeOpenRouterModelId } from '../utils/modelData';
-import { randomizeAgentCharacters } from '../utils/funModes';
+import { randomizeAgentCharacters, randomizeModerator } from '../utils/funModes';
 
 // If the user previously opted into browser-local storage, this holds the
 // entire saved workspace (topic, agents, moderator, every policy slider,
@@ -294,12 +294,16 @@ export const useDebateStore = create<DebateStore>((set, get) => {
 
     // Switching to a fun mode instantly reshuffles every panelist's name and
     // chat character style/emoji to match, so the cast feels new right away.
-    // Picking "standard" leaves the current cast alone.
+    // The moderator's persona/tone follows the same switch - otherwise it
+    // stays stuck on whatever was typed for a previous mode/topic (or the
+    // same polite default) no matter how the room's mood changes. Picking
+    // "standard" leaves both the cast and the moderator alone.
     applyFunMode: (modeId) => {
       set((state) => {
         const newAgents =
           modeId === 'standard' ? state.settings.agents : randomizeAgentCharacters(state.settings.agents, modeId);
-        const newSettings = { ...state.settings, funDebateModeId: modeId, agents: newAgents };
+        const newModerator = randomizeModerator(state.settings.moderator, modeId);
+        const newSettings = { ...state.settings, funDebateModeId: modeId, agents: newAgents, moderator: newModerator };
         if (engineInstance) engineInstance.setSettings(newSettings);
         return { settings: newSettings };
       });
